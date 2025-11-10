@@ -232,6 +232,7 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
         provenance={provenance}
         loadingProvenance={loadingProvenance}
         onFetchProvenance={fetchProvenance}
+        token={token}
       />
 
       <ForwardMessageDialog
