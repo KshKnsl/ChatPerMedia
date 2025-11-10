@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +43,7 @@ export function LoginPage({ onLogin }) {
             'Content-Type': 'multipart/form-data'
           }
         });
-        alert('Account created! Please login.');
+        toast.success('Account created! Please login.');
         setIsRegister(false);
         setEmail('');
         setAvatar(null);
@@ -52,7 +53,7 @@ export function LoginPage({ onLogin }) {
         onLogin(response.data.token, response.data.userId);
       }
     } catch (error) {
-      alert(isRegister ? ('Registration failed: ' + (error.response?.data?.error || error.message)) : 'Login failed');
+  toast.error(isRegister ? ('Registration failed: ' + (error.response?.data?.error || error.message)) : 'Login failed');
     }
   };
 

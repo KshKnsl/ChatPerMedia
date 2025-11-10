@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { ChatPage } from '@/components/chat/ChatPage';
+import { AppToaster } from '@/components/ui/sonner';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -35,6 +36,7 @@ function App() {
           <Route path="/login" element={token ? <Navigate to="/" /> : <LoginPage onLogin={handleLogin} />} />
           <Route path="/" element={token ? <ChatPage userId={userId} token={token} onLogout={handleLogout} /> : <Navigate to="/login" />} />
         </Routes>
+        <AppToaster />
       </div>
     </Router>
   );

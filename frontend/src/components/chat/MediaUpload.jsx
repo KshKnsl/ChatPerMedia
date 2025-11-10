@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -24,7 +25,7 @@ export function MediaUpload({ onUpload, token })
         onUpload(response.data.mediaId);
         setFile(null);
       } catch (error) {
-        alert('Upload failed: ' + (error.response?.data?.error || error.message));
+        toast.error('Upload failed: ' + (error.response?.data?.error || error.message));
       } finally {
         setUploading(false);
       }

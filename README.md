@@ -1,4 +1,4 @@
-# ChatPerVideo
+# ChatPerMedia
 
 A secure, real-time chat and video-sharing platform with end-to-end encryption and forensic watermarking.
 

@@ -8,7 +8,7 @@ export function ChatHeader({ selectedUserName, selectedUserAvatar, onMenuClick }
         onClick={onMenuClick}
         variant="ghost" 
         size="icon"
-        className="lg:hidden mr-2"
+        className="md:hidden mr-2"
       >
         <Menu className="h-5 w-5" />
       </Button>

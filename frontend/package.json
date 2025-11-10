@@ -1,5 +1,5 @@
 {
-  "name": "chatpervideo-frontend",
+  "name": "ChatPerMedia-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -22,6 +22,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.0",
     "socket.io-client": "^4.7.0",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7"
   },
