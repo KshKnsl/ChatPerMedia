@@ -4,6 +4,7 @@ RUN corepack enable \
  && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
+    ffmpeg \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
@@ -34,5 +35,5 @@ ENV NODE_ENV=production
 ENV MONGO_URI=${MONGO_URI}
 ENV PORT=3001
 CMD sh -c 'pnpm concurrently -n microservice,backend -c magenta,blue \
-	"python3 -u microservice/app.py" \
-	"node backend/index.js"'
+   "gunicorn --chdir microservice -w 2 -b 0.0.0.0:5000 app:app" \
+   "node backend/index.js"'
