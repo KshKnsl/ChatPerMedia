@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,11 +6,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Paperclip, Send, Loader2, Lock, Forward } from 'lucide-react';
 import { MediaViewerDialog } from './MediaViewerDialog';
 import { ForwardMessageDialog } from './ForwardMessageDialog';
-import { API_BASE_URL } from '@/config';
-
-const API_BASE = API_BASE_URL + '/api';
+import { api, uploadFile } from '@/utils/api';
 
 export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadMedia, token, onLogout, users, onForwardMessage, selectedUser }) {
+  useEffect(() => {
+    api.setToken(token);
+    api.setLogoutHandler(onLogout);
+  }, [token, onLogout]);
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null);
@@ -34,35 +35,21 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
     }
   };
 
-  const handleAuthError = (error) => {
-    if (error.response?.status === 403 || error.response?.status === 401) {
-      toast.error('Session expired. Please login again.');
-      onLogout?.();
-      return true;
-    }
-    return false;
-  };
-
   const handleFileSelect = async (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    setUploading(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
-    try {
-      const { data } = await axios.post(`${API_BASE}/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
-      });
+    const { data } = await uploadFile('/upload', formData, token, {
+      errorMessage: 'Upload failed'
+    });
+    
+    if (data) {
       onUploadMedia(data.mediaId);
       fileInputRef.current.value = '';
-    } catch (error) {
-      if (!handleAuthError(error)) {
-        toast.error('Upload failed: ' + (error.response?.data?.error || error.message));
-      }
-    } finally {
-      setUploading(false);
     }
+    setUploading(false);
   };
 
   const handleMediaClick = (media) => {
@@ -87,20 +74,11 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
   const fetchProvenance = async (mediaId) => {
     if (!mediaId) return toast.error('Media ID not available');
     
-    setLoadingProvenance(true);
-    try {
-      const { data } = await axios.get(`${API_BASE}/media/${mediaId}/provenance`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setProvenance(data);
-      toast.success('Provenance loaded');
-    } catch (error) {
-      if (!handleAuthError(error)) {
-        toast.error('Failed to fetch provenance: ' + (error.response?.data?.error || error.message));
-      }
-    } finally {
-      setLoadingProvenance(false);
-    }
+    const { data } = await api.fetchWithLoading(`/media/${mediaId}/provenance`, setLoadingProvenance, {
+      successMessage: 'Provenance loaded',
+      errorMessage: 'Failed to fetch provenance'
+    });
+    if (data) setProvenance(data);
   };
 
   const formatTime = (date) => new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

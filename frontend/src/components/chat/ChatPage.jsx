@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { UserList } from './UserList';
@@ -9,10 +8,13 @@ import { useSocket } from '@/hooks/useSocket';
 import { ThemeToggle } from '../ThemeToggle';
 import { Menu, X, MessageCircle, Trash2, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '@/config';
-
-const API_BASE = API_BASE_URL + '/api';
+import { api } from '@/utils/api';
 
 export function ChatPage({ userId, token, onLogout }) {
+  useEffect(() => {
+    api.setToken(token);
+    api.setLogoutHandler(onLogout);
+  }, [token, onLogout]);
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -24,82 +26,55 @@ export function ChatPage({ userId, token, onLogout }) {
 
   useEffect(() => { fetchUsers(); }, []);
 
-  const headers = { Authorization: `Bearer ${token}` };
-  
-  const handleAuthError = (err) => {
-    if (err.response?.status === 403 || err.response?.status === 401) {
-      toast.error('Session expired. Please login again.');
-      onLogout();
-      return true;
-    }
-    return false;
-  };
-
   const fetchUsers = async () => {
-    setRefreshing(true);
-    try {
-      const { data } = await axios.get(`${API_BASE}/users`, { headers });
+    const { data } = await api.fetchWithLoading('/users', setRefreshing);
+    if (data) {
       setUsers(data);
       setUserMap(Object.fromEntries(data.map(u => [u._id, u.username])));
       setCurrentUser(data.find(u => u._id === userId));
-    } catch (err) {
-      console.error(err);
-      handleAuthError(err);
-    } finally {
-      setRefreshing(false);
     }
   };
 
   const handleSelectUser = async (selectedUserId) => {
     setSelectedUser(selectedUserId);
-    try {
-      const { data } = await axios.get(`${API_BASE}/messages/${selectedUserId}`, { headers });
-      if (data.length === 0) return;
+    const { data } = await api.get(`/messages/${selectedUserId}`);
+    if (!data || data.length === 0) return;
 
-      const decrypted = await decryptHistory(data, selectedUserId);
-      setMessages(decrypted);
-      
-      if (!sharedKey) {
-        const checkKey = setInterval(async () => {
-          if (sharedKey) {
-            clearInterval(checkKey);
-            setMessages(await decryptHistory(data, selectedUserId));
-          }
-        }, 500);
-        setTimeout(() => clearInterval(checkKey), 10000);
-      }
-    } catch (err) {
-      console.error(err);
-      handleAuthError(err);
+    const decrypted = await decryptHistory(data, selectedUserId);
+    setMessages(decrypted);
+    
+    if (!sharedKey) {
+      const checkKey = setInterval(async () => {
+        if (sharedKey) {
+          clearInterval(checkKey);
+          setMessages(await decryptHistory(data, selectedUserId));
+        }
+      }, 500);
+      setTimeout(() => clearInterval(checkKey), 10000);
     }
   };
 
   const handleClearMessages = async () => {
     if (!confirm('Delete all your messages? This cannot be undone.')) return;
-    try {
-      const { data } = await axios.delete(`${API_BASE}/messages/clear`, { headers });
-      toast.success(`Deleted ${data.count} messages`);
+    const { data } = await api.delete('/messages/clear', {
+      successMessage: data => `Deleted ${data.count} messages`,
+      errorMessage: 'Failed to clear messages'
+    });
+    if (data) {
       setMessages([]);
       users.forEach(u => u._id !== userId && clearStorageForPeer(u._id));
       selectedUser && handleSelectUser(selectedUser);
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        toast.error('Failed to clear: ' + (err.response?.data?.error || err.message));
-      }
+      toast.success(`Deleted ${data.count} messages`);
     }
   };
 
   const handleDeleteAccount = async () => {
     if (!confirm('Delete your account? This is irreversible.')) return;
-    try {
-      await axios.delete(`${API_BASE}/auth/account`, { headers });
-      toast.success('Account deleted');
-      onLogout();
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        toast.error('Failed to delete: ' + (err.response?.data?.error || err.message));
-      }
-    }
+    const { data } = await api.delete('/auth/account', {
+      successMessage: 'Account deleted',
+      errorMessage: 'Failed to delete account'
+    });
+    if (data) onLogout();
   };
 
   const handleForwardMessage = async (message, targetUserId) => {
@@ -108,9 +83,21 @@ export function ChatPage({ userId, token, onLogout }) {
       toast.success('Message forwarded');
     } catch (err) {
       console.error(err);
-      if (!handleAuthError(err)) {
-        toast.error('Failed to forward: ' + (err.message || 'Unknown error'));
-      }
+      toast.error('Failed to forward: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!selectedUser) return;
+    const targetUserName = userMap[selectedUser] || 'this user';
+    if (!confirm(`Delete all messages with ${targetUserName}? This cannot be undone.`)) return;
+    const { data } = await api.delete(`/messages/${selectedUser}`, {
+      errorMessage: 'Failed to delete chat'
+    });
+    if (data) {
+      toast.success(`Deleted ${data.count} messages`);
+      setMessages([]);
+      clearStorageForPeer(selectedUser);
     }
   };
 
@@ -200,6 +187,7 @@ export function ChatPage({ userId, token, onLogout }) {
               selectedUserName={userMap[selectedUser]}
               selectedUserAvatar={selectedUserData?.avatar ? `${API_BASE_URL}${selectedUserData.avatar}` : null}
               onMenuClick={() => setShowSidebar(true)}
+              onDeleteChat={handleDeleteChat}
             />
             <div className="flex-1 overflow-hidden">
               <ChatWindow 

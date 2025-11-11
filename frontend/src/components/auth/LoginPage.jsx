@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, User, MessageSquare } from 'lucide-react';
+import { uploadFile } from '@/utils/api';
 import { API_BASE_URL } from '@/config';
+import axios from 'axios';
 
 export function LoginPage({ onLogin }) {
   const [isRegister, setIsRegister] = useState(false);
@@ -29,32 +30,33 @@ export function LoginPage({ onLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      if (isRegister) {
-        const formData = new FormData();
-        formData.append('username', username);
-        formData.append('password', password);
-        formData.append('email', email);
-        if (avatar) {
-          formData.append('avatar', avatar);
-        }
-        
-        await axios.post(API_BASE_URL + '/api/auth/register', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-        toast.success('Account created! Please login.');
+    if (isRegister) {
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('password', password);
+      formData.append('email', email);
+      if (avatar) {
+        formData.append('avatar', avatar);
+      }
+      
+      const { data } = await uploadFile('/auth/register', formData, null, {
+        successMessage: 'Account created! Please login.',
+        errorMessage: 'Registration failed'
+      });
+      
+      if (data) {
         setIsRegister(false);
         setEmail('');
         setAvatar(null);
         setAvatarPreview(null);
-      } else {
+      }
+    } else {
+      try {
         const response = await axios.post(API_BASE_URL + '/api/auth/login', { username, password });
         onLogin(response.data.token, response.data.userId);
+      } catch (error) {
+        toast.error('Login failed: ' + (error.response?.data?.error || error.message));
       }
-    } catch (error) {
-  toast.error(isRegister ? ('Registration failed: ' + (error.response?.data?.error || error.message)) : 'Login failed');
     }
   };
 

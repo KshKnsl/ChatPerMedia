@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
+import { Menu, Trash2 } from 'lucide-react';
 
-export function ChatHeader({ selectedUserName, selectedUserAvatar, onMenuClick }) {
+export function ChatHeader({ selectedUserName, selectedUserAvatar, onMenuClick, onDeleteChat }) {
   return (
     <div className="h-16 bg-card border-b border-border flex items-center px-4 md:px-6">
       <Button 
@@ -28,6 +28,17 @@ export function ChatHeader({ selectedUserName, selectedUserAvatar, onMenuClick }
       <div className="flex-1">
         <div className="font-semibold text-foreground text-sm md:text-base">{selectedUserName}</div>
       </div>
+      {onDeleteChat && (
+        <Button
+          onClick={onDeleteChat}
+          variant="ghost"
+          size="icon"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          title="Delete this conversation"
+        >
+          <Trash2 className="h-5 w-5" />
+        </Button>
+      )}
     </div>
   );
 }

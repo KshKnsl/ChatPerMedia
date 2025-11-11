@@ -1,38 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Shield, Info, UserSearch } from 'lucide-react';
-import axios from 'axios';
-import { toast } from 'sonner';
-import { API_BASE_URL, MICROSERVICE_URL } from '@/config';
-
-const API_BASE = API_BASE_URL + '/api';
+import { MICROSERVICE_URL } from '@/config';
+import { api } from '@/utils/api';
 
 export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenance, loadingProvenance, onFetchProvenance, token }) {
   const [extraction, setExtraction] = useState(null);
   const [loadingExtraction, setLoadingExtraction] = useState(false);
 
+  useEffect(() => {
+    api.setToken(token);
+  }, [token]);
+
   const handleExtract = async () => {
     if (!selectedMedia?.url) return;
     
-    setLoadingExtraction(true);
-    try {
-      let filePath = selectedMedia.url.replace(MICROSERVICE_URL, '');
-      if (filePath.startsWith('/')) {
-        filePath = '.' + filePath;
-      }
-      
-      const { data } = await axios.post(`${API_BASE}/media/extract`, 
-        { file_path: filePath },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setExtraction(data);
-      toast.success('Watermark extracted successfully');
-    } catch (error) {
-      toast.error('Failed to extract watermark: ' + (error.response?.data?.error || error.message));
-    } finally {
-      setLoadingExtraction(false);
+    let filePath = selectedMedia.url.replace(MICROSERVICE_URL, '');
+    if (filePath.startsWith('/')) {
+      filePath = '.' + filePath;
     }
+    
+    const { data } = await api.postWithLoading('/media/extract', 
+      { file_path: filePath },
+      setLoadingExtraction,
+      {
+        successMessage: 'Watermark extracted successfully',
+        errorMessage: 'Failed to extract watermark'
+      }
+    );
+    if (data) setExtraction(data);
   };
 
   return (
