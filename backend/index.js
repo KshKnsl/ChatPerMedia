@@ -19,16 +19,29 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin: process.env.NODE_ENV === 'production' ? true : "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
-app.use(cors());
+app.use(cors({ origin: process.env.NODE_ENV === 'production' ? true : "http://localhost:5173", credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 
 app.use('/uploads/avatars', express.static('uploads/avatars'));
+
+app.get('/media/*', async (req, res) => {
+  try {
+    const mediaPath = req.path;
+    const microserviceUrl = `http://localhost:5000${mediaPath}`;
+    const response = await axios.get(microserviceUrl, { responseType: 'stream' });
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('[PROXY] Error fetching media:', error.message);
+    res.status(error.response?.status || 500).json({ error: 'Failed to fetch media' });
+  }
+});
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -234,7 +247,7 @@ io.on('connection', (socket) => {
       });
 
       const { recipientFilePath } = response.data;
-      const mediaUrl = `http://localhost:5000${recipientFilePath}`;
+      const mediaUrl = recipientFilePath;
       console.log(`[SOCKET] Forensic watermark created: ${recipientFilePath}`);
 
       media.forensicEmbeds.push({ recipientId: receiverId, recipientFilePath, createdAt: new Date() });
@@ -260,7 +273,7 @@ io.on('connection', (socket) => {
         mediaId: media._id.toString()
       });
       console.log(`[SOCKET] Media shared with receiver: ${receiverId}`);
-      socket.emit('mediaSent', { messageId: message._id, receiverId, mediaId: media._id.toString(), masterUrl: `http://localhost:5000${media.masterFilePath}` });
+      socket.emit('mediaSent', { messageId: message._id, receiverId, mediaId: media._id.toString(), masterUrl: media.masterFilePath });
     } catch (error) {
       console.error(`[SOCKET] Error sharing media:`, error);
       socket.emit('messageError', { error: error.message });
@@ -272,7 +285,15 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 3001;
+const path = require('path');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  });
+}
+
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

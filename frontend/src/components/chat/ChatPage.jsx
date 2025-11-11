@@ -8,8 +8,9 @@ import { ChatWindow } from './ChatWindow';
 import { useSocket } from '@/hooks/useSocket';
 import { ThemeToggle } from '../ThemeToggle';
 import { Menu, X, MessageCircle, Trash2, RefreshCw } from 'lucide-react';
+import { API_BASE_URL } from '@/config';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = API_BASE_URL + '/api';
 
 export function ChatPage({ userId, token, onLogout }) {
   const [users, setUsers] = useState([]);
@@ -126,7 +127,7 @@ export function ChatPage({ userId, token, onLogout }) {
             <>
               <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center">
                 {selectedUserData.avatar ? (
-                  <img src={`http://localhost:3001${selectedUserData.avatar}`} alt={userMap[selectedUser]} className="w-full h-full object-cover" />
+                  <img src={`${API_BASE_URL}${selectedUserData.avatar}`} alt={userMap[selectedUser]} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-primary font-semibold">{userMap[selectedUser]?.charAt(0)?.toUpperCase()}</span>
                 )}
@@ -150,7 +151,7 @@ export function ChatPage({ userId, token, onLogout }) {
             <ThemeToggle />
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-hidden mt-16 md:mt-0">
           <UserList 
             users={users} 
@@ -170,7 +171,7 @@ export function ChatPage({ userId, token, onLogout }) {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 overflow-hidden flex items-center justify-center">
               {currentUser?.avatar ? (
-                <img src={`http://localhost:3001${currentUser.avatar}`} alt={currentUser.username} className="w-full h-full object-cover" />
+                <img src={`${API_BASE_URL}${currentUser.avatar}`} alt={currentUser.username} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-primary font-semibold">{currentUser?.username?.[0]?.toUpperCase() || '?'}</span>
               )}
@@ -197,7 +198,7 @@ export function ChatPage({ userId, token, onLogout }) {
           <>
             <ChatHeader 
               selectedUserName={userMap[selectedUser]}
-              selectedUserAvatar={selectedUserData?.avatar ? `http://localhost:3001${selectedUserData.avatar}` : null}
+              selectedUserAvatar={selectedUserData?.avatar ? `${API_BASE_URL}${selectedUserData.avatar}` : null}
               onMenuClick={() => setShowSidebar(true)}
             />
             <div className="flex-1 overflow-hidden">

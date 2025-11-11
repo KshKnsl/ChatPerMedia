@@ -1,6 +1,7 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
+import { API_BASE_URL } from '@/config';
 
 export function UserList({ users, selectedUser, onSelectUser, currentUserId, onRefresh, refreshing, unreadCounts = {} }) {
   return (
@@ -40,7 +41,7 @@ export function UserList({ users, selectedUser, onSelectUser, currentUserId, onR
                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-primary/20 flex items-center justify-center mr-2 md:mr-3 flex-shrink-0 overflow-hidden relative">
                     {u.avatar ? (
                       <img 
-                        src={`http://localhost:3001${u.avatar}`} 
+                        src={`${API_BASE_URL}${u.avatar}`} 
                         alt={u.username}
                         className="w-full h-full object-cover"
                       />

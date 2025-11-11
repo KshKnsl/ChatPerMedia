@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import { generateDHKeys, computeSharedKey, encryptMessage, decryptMessage, exportPrivateKeyJwk, importPrivateKeyJwk } from '@/utils/crypto';
+import { SOCKET_URL } from '@/config';
 
 export function useSocket(token, userId, selectedUser) {
   const [socket, setSocket] = useState(null);
@@ -114,7 +115,7 @@ export function useSocket(token, userId, selectedUser) {
     if (socket) return;
     
     const initSocket = async () => {
-      const newSocket = io('http://localhost:3001', { auth: { token } });
+      const newSocket = io(SOCKET_URL, { auth: { token } });
       setSocket(newSocket);
 
       // Load or generate persistent ECDH keypair

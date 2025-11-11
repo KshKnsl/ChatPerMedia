@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { API_BASE_URL } from '@/config';
 
 export function MediaUpload({ onUpload, token }) 
 {
@@ -16,7 +17,7 @@ export function MediaUpload({ onUpload, token })
       const formData = new FormData();
       formData.append('file', file);
       try {
-        const response = await axios.post('http://localhost:3001/api/upload', formData, {
+        const response = await axios.post(API_BASE_URL + '/api/upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}`

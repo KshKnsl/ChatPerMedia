@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Shield, Info, UserSearch } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { API_BASE_URL, MICROSERVICE_URL } from '@/config';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = API_BASE_URL + '/api';
 
 export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenance, loadingProvenance, onFetchProvenance, token }) {
   const [extraction, setExtraction] = useState(null);
@@ -16,7 +17,7 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
     
     setLoadingExtraction(true);
     try {
-      let filePath = selectedMedia.url.replace('http://localhost:5000', '');
+      let filePath = selectedMedia.url.replace(MICROSERVICE_URL, '');
       if (filePath.startsWith('/')) {
         filePath = '.' + filePath;
       }

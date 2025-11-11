@@ -7,8 +7,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Paperclip, Send, Loader2, Lock, Forward } from 'lucide-react';
 import { MediaViewerDialog } from './MediaViewerDialog';
 import { ForwardMessageDialog } from './ForwardMessageDialog';
+import { API_BASE_URL } from '@/config';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = API_BASE_URL + '/api';
 
 export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadMedia, token, onLogout, users, onForwardMessage, selectedUser }) {
   const [message, setMessage] = useState('');

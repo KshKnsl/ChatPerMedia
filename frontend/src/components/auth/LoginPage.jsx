@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, User, MessageSquare } from 'lucide-react';
+import { API_BASE_URL } from '@/config';
 
 export function LoginPage({ onLogin }) {
   const [isRegister, setIsRegister] = useState(false);
@@ -38,7 +39,7 @@ export function LoginPage({ onLogin }) {
           formData.append('avatar', avatar);
         }
         
-        await axios.post('http://localhost:3001/api/auth/register', formData, {
+        await axios.post(API_BASE_URL + '/api/auth/register', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
@@ -49,7 +50,7 @@ export function LoginPage({ onLogin }) {
         setAvatar(null);
         setAvatarPreview(null);
       } else {
-        const response = await axios.post('http://localhost:3001/api/auth/login', { username, password });
+        const response = await axios.post(API_BASE_URL + '/api/auth/login', { username, password });
         onLogin(response.data.token, response.data.userId);
       }
     } catch (error) {
