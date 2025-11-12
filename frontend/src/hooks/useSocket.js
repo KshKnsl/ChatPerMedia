@@ -389,7 +389,7 @@ export function useSocket(token, userId, selectedUser) {
         if (msg.ciphertext && !msg.text) {
           return {
             ...msg,
-            text: '[wEncrypted - Key not available]',
+            text: '[Encrypted - Key not available]',
             decrypted: false
           };
         }

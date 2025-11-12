@@ -33,7 +33,8 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(morgan("dev"));
 
 app.use("/uploads/avatars", express.static("uploads/avatars"));
@@ -77,14 +78,16 @@ app.get("/api/media/:id/provenance", authenticateToken, asyncHandler(async (req,
     return res.status(404).json({ error: "Media not found" });
   }
 
-  const forensicEmbeds = await Promise.all(
-    media.forensicEmbeds.map(async (embed) => {
-      const recipient = await User.findById(embed.recipientId, "username email");
+  const distributionPath = await Promise.all(
+    media.distributionPath.map(async (entry) => {
+      const recipient = await User.findById(entry.recipientId, "username email");
+      const sender = await User.findById(entry.fromUserId, "username email");
       return {
-        recipientId: embed.recipientId,
+        recipientId: entry.recipientId,
         recipient: recipient ? { username: recipient.username, email: recipient.email } : null,
-        recipientFilePath: embed.recipientFilePath,
-        createdAt: embed.createdAt,
+        fromUserId: entry.fromUserId,
+        from: sender ? { username: sender.username, email: sender.email } : null,
+        sharedAt: entry.sharedAt,
       };
     })
   );
@@ -96,10 +99,9 @@ app.get("/api/media/:id/provenance", authenticateToken, asyncHandler(async (req,
       username: media.creatorId.username,
       email: media.creatorId.email,
     },
-    masterFilePath: media.masterFilePath,
+    filePath: media.filePath,
     mediaType: media.mediaType,
-    sourceEmbedded: media.sourceEmbedded,
-    forensicEmbeds,
+    distributionPath,
     createdAt: media.createdAt,
     updatedAt: media.updatedAt,
   });
@@ -109,10 +111,28 @@ app.post("/api/media/extract", authenticateToken, asyncHandler(async (req, res) 
   const { file_path } = req.body;
   if (!file_path) return res.status(400).json({ error: "file_path is required" });
 
-  console.log(`[API] Requesting watermark extraction for: ${file_path}`);
-  const response = await axios.post("http://localhost:5000/api/v1/watermark_extract", { file_path });
+  console.log(`[API] Requesting media ID extraction for: ${file_path}`);
+  const response = await axios.post("http://localhost:5000/api/v1/extract_media_id", { file_path });
   console.log(`[API] Extraction result:`, response.data);
-  sendSuccess(res, response.data);
+  
+  if (response.data.status === 'success' && response.data.media_id) {
+    const media = await Media.findById(response.data.media_id).populate("creatorId", "username email");
+    if (media) {
+      sendSuccess(res, {
+        status: 'success',
+        media_id: response.data.media_id,
+        creator: {
+          username: media.creatorId.username,
+          email: media.creatorId.email
+        },
+        createdAt: media.createdAt
+      });
+    } else {
+      sendSuccess(res, response.data);
+    }
+  } else {
+    sendSuccess(res, response.data);
+  }
 }));
 
 app.get("/api/messages/:otherUserId", authenticateToken, asyncHandler(async (req, res) => {
@@ -267,31 +287,22 @@ io.on("connection", (socket) => {
         return;
       }
 
-      console.log(
-        `[SOCKET] Requesting forensic watermark for media: ${mediaId}`
-      );
-      const response = await axios.post(
-        "http://localhost:5000/api/v1/watermark_forensic",
-        {
-          masterFilePath: media.masterFilePath,
-          recipient_id: receiverId,
-        }
-      );
-
-      const { recipientFilePath } = response.data;
-      let mediaUrl = recipientFilePath;
-      if (!mediaUrl.startsWith("/")) mediaUrl = `/${mediaUrl}`;
-      console.log(`[SOCKET] Forensic watermark created: ${recipientFilePath}`);
-
-      media.forensicEmbeds.push({
+      // Add recipient to distribution path
+      media.distributionPath.push({
         recipientId: receiverId,
-        recipientFilePath,
-        createdAt: new Date(),
+        fromUserId: socket.userId,
+        sharedAt: new Date(),
       });
       await media.save();
-      console.log(
-        `[SOCKET] Forensic embed recorded for recipient: ${receiverId}`
-      );
+      console.log(`[SOCKET] Recipient added to distribution path: ${receiverId}`);
+
+      // Get media URL (file already has media ID embedded)
+      let mediaUrl = media.filePath;
+      if (mediaUrl.startsWith('media/')) {
+        mediaUrl = `/${mediaUrl}`;
+      } else if (!mediaUrl.startsWith('/')) {
+        mediaUrl = `/media/master/${mediaUrl.split('/').pop()}`;
+      }
 
       const message = new Message({
         senderId: socket.userId,
@@ -312,14 +323,12 @@ io.on("connection", (socket) => {
         mediaId: media._id.toString(),
       });
       console.log(`[SOCKET] Media shared with receiver: ${receiverId}`);
-      const masterUrl = media.masterFilePath?.startsWith("/")
-        ? media.masterFilePath
-        : `/${media.masterFilePath}`;
+      
       socket.emit("mediaSent", {
         messageId: message._id,
         receiverId,
         mediaId: media._id.toString(),
-        masterUrl,
+        masterUrl: mediaUrl,
       });
     } catch (error) {
       console.error(`[SOCKET] Error sharing media:`, error);
@@ -343,6 +352,11 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const PORT = process.env.PORT || 3001;
+
+server.setTimeout(300000);
+server.headersTimeout = 310000;
+server.requestTimeout = 300000;
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

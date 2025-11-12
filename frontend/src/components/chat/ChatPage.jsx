@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import { UserList } from './UserList';
 import { ChatHeader } from './ChatHeader';
 import { ChatWindow } from './ChatWindow';
@@ -9,6 +11,7 @@ import { ThemeToggle } from '../ThemeToggle';
 import { Menu, X, MessageCircle, Trash2, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '@/config';
 import { api } from '@/utils/api';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function ChatPage({ userId, token, onLogout }) {
   useEffect(() => {
@@ -25,6 +28,29 @@ export function ChatPage({ userId, token, onLogout }) {
   const { messages, setMessages, sendMessage, shareMedia, sharedKey, decryptHistory, clearStorageForPeer, unreadCounts, clearUnread, forwardMessage } = useSocket(token, userId, selectedUser);
 
   useEffect(() => { fetchUsers(); }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showSidebar) {
+        setShowSidebar(false);
+      }
+      if (!selectedUser || document.activeElement.tagName !== 'INPUT') {
+        const filteredUsers = users.filter(u => u._id !== userId);
+        const currentIndex = filteredUsers.findIndex(u => u._id === selectedUser);
+        
+        if (e.key === 'ArrowUp' && currentIndex > 0) {
+          e.preventDefault();
+          handleSelectUser(filteredUsers[currentIndex - 1]._id);
+        } else if (e.key === 'ArrowDown' && currentIndex < filteredUsers.length - 1) {
+          e.preventDefault();
+          handleSelectUser(filteredUsers[currentIndex + 1]._id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSidebar, selectedUser, users, userId, refreshing]);
 
   const fetchUsers = async () => {
     const { data } = await api.fetchWithLoading('/users', setRefreshing);
@@ -105,84 +131,155 @@ export function ChatPage({ userId, token, onLogout }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b p-4 flex items-center justify-between">
-        <Button onClick={() => setShowSidebar(!showSidebar)} variant="ghost" size="icon">
-          {showSidebar ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+      <motion.div 
+        className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-b p-4 flex items-center justify-between"
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+      >
+        <motion.div whileTap={{ scale: 0.9 }}>
+          <Button onClick={() => setShowSidebar(!showSidebar)} variant="ghost" size="icon">
+            <motion.div
+              animate={{ rotate: showSidebar ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {showSidebar ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </motion.div>
+          </Button>
+        </motion.div>
         <div className="flex items-center gap-2">
-          {selectedUserData ? (
-            <>
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center">
-                {selectedUserData.avatar ? (
-                  <img src={`${API_BASE_URL}${selectedUserData.avatar}`} alt={userMap[selectedUser]} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-primary font-semibold">{userMap[selectedUser]?.charAt(0)?.toUpperCase()}</span>
-                )}
-              </div>
-              <span className="font-semibold">{userMap[selectedUser]}</span>
-            </>
-          ) : (
-            <h1 className="text-lg font-semibold">ChatPerMedia</h1>
-          )}
+          <AnimatePresence mode="wait">
+            {selectedUserData ? (
+              <motion.div
+                key="selected-user"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center gap-2"
+              >
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={selectedUserData.avatar ? `${API_BASE_URL}${selectedUserData.avatar}` : undefined} alt={userMap[selectedUser]} />
+                  <AvatarFallback className="bg-primary/20 text-primary">
+                    {userMap[selectedUser]?.charAt(0)?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="font-semibold">{userMap[selectedUser]}</span>
+              </motion.div>
+            ) : (
+              <motion.h1 
+                key="logo"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="text-lg font-semibold"
+              >
+                ChatPerMedia
+              </motion.h1>
+            )}
+          </AnimatePresence>
         </div>
         <ThemeToggle />
-      </div>
+      </motion.div>
 
-      <div className={`${showSidebar ? 'fixed inset-y-0 left-0 z-40' : 'hidden'} md:relative md:flex w-72 md:w-80 bg-card border-r flex-col h-full overflow-hidden`}>
-        <div className="hidden md:flex p-4 border-b items-center justify-between">
-          <h1 className="text-xl font-semibold">ChatPerMedia</h1>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh">
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </Button>
-            <ThemeToggle />
-          </div>
-        </div>
+      <AnimatePresence>
+        {showSidebar && (
+          <motion.div
+            initial={{ x: -320 }}
+            animate={{ x: 0 }}
+            exit={{ x: -320 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed inset-y-0 left-0 z-40 w-72 md:w-80 bg-card border-r flex-col h-full overflow-hidden md:relative md:flex"
+          >
+            <div className="hidden md:flex p-4 border-b items-center justify-between">
+              <h1 className="text-xl font-semibold">ChatPerMedia</h1>
+              <div className="flex gap-2">
+                <motion.div whileTap={{ scale: 0.9 }}>
+                  <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh">
+                    <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  </Button>
+                </motion.div>
+                <ThemeToggle />
+              </div>
+            </div>
 
-        <div className="flex-1 overflow-hidden mt-16 md:mt-0">
-          <UserList 
-            users={users} 
-            selectedUser={selectedUser} 
-            onSelectUser={(uid) => {
-              handleSelectUser(uid);
-              setShowSidebar(false);
-            }}
-            currentUserId={userId}
-            onRefresh={fetchUsers}
-            refreshing={refreshing}
-            unreadCounts={unreadCounts}
+            <div className="flex-1 overflow-hidden mt-16 md:mt-0">
+              <UserList 
+                users={users} 
+                selectedUser={selectedUser} 
+                onSelectUser={(uid) => {
+                  handleSelectUser(uid);
+                  setShowSidebar(false);
+                }}
+                currentUserId={userId}
+                onRefresh={fetchUsers}
+                refreshing={refreshing}
+                unreadCounts={unreadCounts}
+              />
+            </div>
+
+            <Separator />
+            
+            <motion.div 
+              className="p-4 space-y-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="flex items-center gap-3">
+                <Avatar className="w-10 h-10 ring-2 ring-primary/20">
+                  <AvatarImage 
+                    src={currentUser?.avatar ? `${API_BASE_URL}${currentUser.avatar}` : undefined}
+                    alt={currentUser?.username}
+                  />
+                  <AvatarFallback className="bg-primary/20 text-primary font-semibold">
+                    {currentUser?.username?.[0]?.toUpperCase() || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate">{currentUser?.username || 'You'}</div>
+                  <div className="text-xs text-muted-foreground truncate">{currentUser?.email}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button onClick={handleClearMessages} variant="outline" size="sm" className="col-span-2 text-destructive hover:bg-destructive/10 w-full">
+                    <Trash2 className="h-4 w-4 mr-2" />Clear Messages
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button onClick={onLogout} variant="secondary" size="sm" className="w-full">Logout</Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button onClick={handleDeleteAccount} variant="destructive" size="sm" className="w-full">Delete Account</Button>
+                </motion.div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+            <AnimatePresence>
+        {showSidebar && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setShowSidebar(false)}
           />
-        </div>
+        )}
+      </AnimatePresence>
 
-        <div className="p-4 border-t space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 overflow-hidden flex items-center justify-center">
-              {currentUser?.avatar ? (
-                <img src={`${API_BASE_URL}${currentUser.avatar}`} alt={currentUser.username} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-primary font-semibold">{currentUser?.username?.[0]?.toUpperCase() || '?'}</span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium truncate">{currentUser?.username || 'You'}</div>
-              <div className="text-xs text-muted-foreground truncate">{currentUser?.email}</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={handleClearMessages} variant="outline" size="sm" className="col-span-2 text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4 mr-2" />Clear Messages
-            </Button>
-            <Button onClick={onLogout} variant="secondary" size="sm">Logout</Button>
-            <Button onClick={handleDeleteAccount} variant="destructive" size="sm">Delete Account</Button>
-          </div>
-        </div>
-      </div>
-
-      {showSidebar && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setShowSidebar(false)} />}
-
-      <div className="flex-1 flex flex-col h-full overflow-hidden mt-16 md:mt-0">
+      <AnimatePresence mode="wait">
         {selectedUser ? (
-          <>
+          <motion.div
+            key="chat-view"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="flex-1 flex flex-col h-full overflow-hidden"
+          >
             <ChatHeader 
               selectedUserName={userMap[selectedUser]}
               selectedUserAvatar={selectedUserData?.avatar ? `${API_BASE_URL}${selectedUserData.avatar}` : null}
@@ -203,19 +300,40 @@ export function ChatPage({ userId, token, onLogout }) {
                 selectedUser={selectedUser}
               />
             </div>
-          </>
+          </motion.div>
         ) : (
-          <div className="flex-1 flex items-center justify-center px-4">
+          <motion.div 
+            key="empty-view"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className="flex-1 flex items-center justify-center px-4"
+          >
             <div className="text-center">
-              <MessageCircle className="h-16 w-16 md:h-24 md:w-24 mx-auto mb-4 text-muted-foreground" />
+              <motion.div
+                animate={{ 
+                  y: [0, -10, 0],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ 
+                  duration: 3,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+              >
+                <MessageCircle className="h-16 w-16 md:h-24 md:w-24 mx-auto mb-4 text-muted-foreground" />
+              </motion.div>
               <div className="text-lg md:text-xl text-muted-foreground">Select a chat to start messaging</div>
-              <Button onClick={() => setShowSidebar(true)} variant="outline" className="mt-4 lg:hidden">
-                <Menu className="h-4 w-4 mr-2" />Open Chats
-              </Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button onClick={() => setShowSidebar(true)} variant="outline" className="mt-4 lg:hidden">
+                  <Menu className="h-4 w-4 mr-2" />Open Chats
+                </Button>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

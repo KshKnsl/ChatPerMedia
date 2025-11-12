@@ -1,17 +1,16 @@
 const mongoose = require('mongoose');
 
-const forensicEmbedSchema = new mongoose.Schema({
+const distributionPathSchema = new mongoose.Schema({
   recipientId: { type: mongoose.Schema.Types.ObjectId, ref: 'ChatUser', required: true },
-  recipientFilePath: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+  sharedAt: { type: Date, default: Date.now },
+  fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'ChatUser' } // Who shared it to this recipient
 }, { _id: false });
 
 const mediaSchema = new mongoose.Schema({
-  masterFilePath: { type: String, required: true },
-  mediaType: { type: String, required: true }, // 'video', 'image', 'audio'
+  filePath: { type: String, required: true }, // Path to file with embedded media ID
+  mediaType: { type: String, required: true }, // 'video', 'image'
   creatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'ChatUser', required: true },
-  sourceEmbedded: { type: Boolean, default: true },
-  forensicEmbeds: { type: [forensicEmbedSchema], default: [] }
+  distributionPath: { type: [distributionPathSchema], default: [] }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Media', mediaSchema);

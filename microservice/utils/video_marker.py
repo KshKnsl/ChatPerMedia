@@ -3,91 +3,84 @@ import os
 import numpy as np
 
 def text_to_bits(text):
+    """Convert text to binary string"""
     return ''.join(format(ord(c), '08b') for c in text)
 
 def bits_to_text(bits):
+    """Convert binary string to text"""
     chars = [bits[i:i+8] for i in range(0, len(bits), 8)]
-    return ''.join(chr(int(c, 2)) for c in chars if len(c) == 8)
+    return ''.join(chr(int(c, 2)) for c in chars if len(c) == 8 and int(c, 2) != 0)
 
-def embed_bits(frame, bits, start_pos=0):
+def embed_bits_in_frame(frame, bits):
+    """Embed bits into video frame using LSB steganography"""
     h, w, _ = frame.shape
     bit_idx = 0
-    pixel_count = 0
+    
     for i in range(h):
         for j in range(w):
-            for k in range(3):
-                if pixel_count >= start_pos and bit_idx < len(bits):
+            for k in range(3):  # RGB channels
+                if bit_idx < len(bits):
                     frame[i, j, k] = (frame[i, j, k] & ~1) | int(bits[bit_idx])
                     bit_idx += 1
-                pixel_count += 1
-                if bit_idx >= len(bits):
-                    return
+                else:
+                    return frame
     return frame
 
-def extract_bits(frame, num_bits, start_pos=0):
+def extract_bits_from_frame(frame, num_bits):
+    """Extract bits from video frame using LSB steganography"""
     h, w, _ = frame.shape
     bits = ''
     bit_idx = 0
-    pixel_count = 0
+    
     for i in range(h):
         for j in range(w):
-            for k in range(3):
-                if pixel_count >= start_pos and bit_idx < num_bits:
+            for k in range(3): 
+                if bit_idx < num_bits:
                     bits += str(frame[i, j, k] & 1)
                     bit_idx += 1
-                pixel_count += 1
-                if bit_idx >= num_bits:
+                else:
                     return bits
     return bits
 
-def embed_source_id(video_path, creator_id, output_path):
+def embed_media_id(video_path, media_id, output_path):
+    """Embed media ID into video file using steganography"""
     cap = cv2.VideoCapture(video_path)
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     fps = cap.get(cv2.CAP_PROP_FPS)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-    bits = text_to_bits(creator_id + '\0')
+    bits = text_to_bits(media_id + '|END|')
     embedded = False
+    
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
+        
         if not embedded:
-            embed_bits(frame, bits)
+            frame = embed_bits_in_frame(frame, bits)
             embedded = True
+        
         out.write(frame)
+    
     cap.release()
     out.release()
 
-def embed_forensic_id(video_path, recipient_id, output_path):
-    cap = cv2.VideoCapture(video_path)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-    bits = text_to_bits(recipient_id + '\0')
-    embedded = False
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if not embedded:
-            embed_bits(frame, bits, start_pos=1000)
-            embedded = True
-        out.write(frame)
-    cap.release()
-    out.release()
-
-def extract_watermarks(video_path):
+def extract_media_id(video_path):
+    """Extract embedded media ID from video file"""
     cap = cv2.VideoCapture(video_path)
     ret, frame = cap.read()
-    if not ret:
-        return {'original_creator': 'unknown', 'leaked_by_recipient': 'unknown'}
-    bits_creator = extract_bits(frame, 1000)
-    creator_text = bits_to_text(bits_creator).split('\0')[0]
-    bits_recipient = extract_bits(frame, 1000, start_pos=1000)
-    recipient_text = bits_to_text(bits_recipient).split('\0')[0]
     cap.release()
-    return {'original_creator': creator_text, 'leaked_by_recipient': recipient_text}
+    
+    if not ret:
+        return {'status': 'error', 'message': 'Could not read video file'}
+    
+    bits = extract_bits_from_frame(frame, 500 * 8) 
+    extracted_text = bits_to_text(bits)
+    
+    if '|END|' in extracted_text:
+        media_id = extracted_text.split('|END|')[0].strip()
+        return {'status': 'success', 'media_id': media_id}
+    else:
+        return {'status': 'error', 'message': 'No media ID found'}

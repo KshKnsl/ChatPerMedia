@@ -7,6 +7,7 @@ import { Upload, User, MessageSquare } from 'lucide-react';
 import { uploadFile } from '@/utils/api';
 import { API_BASE_URL } from '@/config';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function LoginPage({ onLogin }) {
   const [isRegister, setIsRegister] = useState(false);
@@ -62,86 +63,141 @@ export function LoginPage({ onLogin }) {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="w-full max-w-md border-border">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mb-4 flex justify-center">
-            <MessageSquare className="h-12 w-12 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-foreground">
-            {isRegister ? 'Create Account' : 'ChatPerMedia'}
-          </CardTitle>
-          <p className="text-muted-foreground text-sm">
-            {isRegister ? 'Sign up to get started' : 'Sign in to your account'}
-          </p>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="w-full max-w-md border-border shadow-lg">
+          <CardHeader className="space-y-1 text-center">
+            <motion.div 
+              className="mb-4 flex justify-center"
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            >
+              <MessageSquare className="h-12 w-12 text-primary" />
+            </motion.div>
+            <CardTitle className="text-2xl font-bold text-foreground">
+              {isRegister ? 'Create Account' : 'ChatPerMedia'}
+            </CardTitle>
+            <p className="text-muted-foreground text-sm">
+              {isRegister ? 'Sign up to get started' : 'Sign in to your account'}
+            </p>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isRegister && (
-              <div className="flex flex-col items-center space-y-3 pb-4 border-b border-border">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border">
-                    {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-12 h-12 text-muted-foreground" />
-                    )}
+            <AnimatePresence mode="wait">
+              {isRegister && (
+                <motion.div 
+                  key="avatar-section"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col items-center space-y-3 pb-4 border-b border-border"
+                >
+                  <div className="relative">
+                    <motion.div 
+                      className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      {avatarPreview ? (
+                        <motion.img 
+                          src={avatarPreview} 
+                          alt="Avatar preview" 
+                          className="w-full h-full object-cover"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      ) : (
+                        <User className="w-12 h-12 text-muted-foreground" />
+                      )}
+                    </motion.div>
+                    <motion.label 
+                      htmlFor="avatar-upload" 
+                      className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <Upload className="w-4 h-4" />
+                    </motion.label>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
                   </div>
-                  <label 
-                    htmlFor="avatar-upload" 
-                    className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
-                  >
-                    <Upload className="w-4 h-4" />
-                  </label>
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">Click icon to upload avatar (optional)</p>
-              </div>
-            )}
+                  <p className="text-xs text-muted-foreground">Click icon to upload avatar (optional)</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
-            <div className="space-y-2">
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
               <Input
                 type="text"
                 placeholder="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className="bg-background"
+                className="bg-background transition-all focus:scale-[1.02]"
               />
-            </div>
+            </motion.div>
             
-            {isRegister && (
-              <div className="space-y-2">
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="bg-background"
-                />
-              </div>
-            )}
+            <AnimatePresence mode="wait">
+              {isRegister && (
+                <motion.div 
+                  key="email-field"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-2"
+                >
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="bg-background transition-all focus:scale-[1.02]"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
             
-            <div className="space-y-2">
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
               <Input
                 type="password"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-background"
+                className="bg-background transition-all focus:scale-[1.02]"
               />
-            </div>
+            </motion.div>
             
-            <Button type="submit" className="w-full">
-              {isRegister ? 'Create Account' : 'Sign In'}
-            </Button>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button type="submit" className="w-full">
+                {isRegister ? 'Create Account' : 'Sign In'}
+              </Button>
+            </motion.div>
           </form>
           <div className="text-center mt-6">
             <Button variant="link" onClick={() => setIsRegister(!isRegister)} className="text-sm">
@@ -149,7 +205,8 @@ export function LoginPage({ onLogin }) {
             </Button>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   );
 }

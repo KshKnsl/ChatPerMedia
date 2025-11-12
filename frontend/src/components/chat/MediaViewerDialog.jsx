@@ -13,6 +13,31 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
     api.setToken(token);
   }, [token]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!open) return;
+      
+      if (e.key === 'Escape') {
+        onOpenChange(false);
+      }
+      
+      if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        onFetchProvenance?.();
+      }
+      
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        handleExtract();
+      }
+    };
+
+    if (open) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [open, onOpenChange, onFetchProvenance]);
+
   const handleExtract = async () => {
     if (!selectedMedia?.url) return;
     
@@ -49,8 +74,9 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                 size="sm" 
                 variant="secondary" 
                 className="bg-black/70 hover:bg-black/90 text-white border border-white/20"
+                title="Extract Watermark (Press E)"
               >
-                {loadingExtraction ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserSearch className="h-4 w-4 mr-2" />Extract</>}
+                {loadingExtraction ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserSearch className="h-4 w-4 mr-2" />Extract (E)</>}
               </Button>
               <Button 
                 onClick={() => onFetchProvenance(selectedMedia.mediaId)} 
@@ -58,8 +84,9 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                 size="sm" 
                 variant="secondary" 
                 className="bg-black/70 hover:bg-black/90 text-white border border-white/20"
+                title="Check Provenance (Press P)"
               >
-                {loadingProvenance ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Shield className="h-4 w-4 mr-2" />Provenance</>}
+                {loadingProvenance ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Shield className="h-4 w-4 mr-2" />Provenance (P)</>}
               </Button>
             </div>
           )}
@@ -69,14 +96,10 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
               <>
                 {selectedMedia.type === 'video' ? (
                   <video src={selectedMedia.url} controls autoPlay className="max-w-full max-h-[70vh] rounded-lg" onContextMenu={(e) => e.preventDefault()} />
-                ) : selectedMedia.type === 'audio' ? (
-                  <div className="w-full max-w-2xl">
-                    <audio src={selectedMedia.url} controls autoPlay className="w-full" onContextMenu={(e) => e.preventDefault()} />
-                  </div>
                 ) : (
                   <img src={selectedMedia.url} alt="Media viewer" className="max-w-full max-h-[70vh] object-contain rounded-lg" onContextMenu={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()} />
                 )}
-                {selectedMedia.sender && selectedMedia.type !== 'audio' && (
+                {selectedMedia.sender && (
                   <div className="absolute inset-0 bg-white bg-opacity-20 flex items-center justify-center pointer-events-none text-3xl md:text-5xl font-bold text-red-600">
                     {selectedMedia.sender}
                   </div>
@@ -91,23 +114,26 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                 {extraction && (
                   <div className="pb-4 border-b">
                     <h3 className="font-semibold text-lg flex items-center gap-2 mb-3">
-                      <UserSearch className="h-5 w-5" />Extracted Watermark Data
+                      <UserSearch className="h-5 w-5" />Extracted Media ID
                     </h3>
                     <div className="space-y-2 bg-muted/50 p-3 rounded-lg">
                       <div className="flex items-start gap-2">
                         <Info className="h-4 w-4 mt-0.5 text-blue-500" />
-                        <div>
-                          <div className="font-medium text-blue-600">Original Creator ID</div>
-                          <div className="text-muted-foreground font-mono text-xs break-all">{extraction.original_creator || 'Not found'}</div>
+                        <div className="flex-1">
+                          <div className="font-medium text-blue-600">Media ID</div>
+                          <div className="text-muted-foreground font-mono text-xs break-all">{extraction.media_id || 'Not found'}</div>
                         </div>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <Info className="h-4 w-4 mt-0.5 text-green-500" />
-                        <div>
-                          <div className="font-medium text-green-600">Leaked By Recipient ID</div>
-                          <div className="text-muted-foreground font-mono text-xs break-all">{extraction.leaked_by_recipient || 'Not found'}</div>
+                      {extraction.creator && (
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 mt-0.5 text-green-500" />
+                          <div>
+                            <div className="font-medium text-green-600">Original Creator</div>
+                            <div className="text-muted-foreground">{extraction.creator.username} ({extraction.creator.email})</div>
+                            <div className="text-xs text-muted-foreground">Uploaded: {new Date(extraction.createdAt).toLocaleString()}</div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -115,9 +141,9 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                 {provenance && (
                   <div>
                     <h3 className="font-semibold text-lg flex items-center gap-2 mb-3">
-                      <Shield className="h-5 w-5" />Media Provenance
+                      <Shield className="h-5 w-5" />Distribution Path
                     </h3>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2 mb-4">
                       <Info className="h-4 w-4 mt-0.5 text-muted-foreground" />
                       <div>
                         <div className="font-medium">Original Uploader</div>
@@ -126,14 +152,25 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                       </div>
                     </div>
                     
-                    {provenance.forensicEmbeds?.length > 0 && (
+                    {provenance.distributionPath?.length > 0 && (
                       <div className="mt-3">
-                        <div className="font-medium mb-2">Shared With ({provenance.forensicEmbeds.length})</div>
-                        <div className="space-y-2">
-                          {provenance.forensicEmbeds.map((embed, idx) => (
-                            <div key={idx} className="pl-4 border-l-2 border-primary/30 text-xs">
-                              <div>{embed.recipient?.username || 'Unknown'} ({embed.recipient?.email || 'N/A'})</div>
-                              <div className="text-muted-foreground">{new Date(embed.createdAt).toLocaleString()}</div>
+                        <div className="font-medium mb-2 flex items-center gap-2">
+                          <div className="h-px flex-1 bg-border"></div>
+                          <span className="text-xs text-muted-foreground">Shared {provenance.distributionPath.length} time(s)</span>
+                          <div className="h-px flex-1 bg-border"></div>
+                        </div>
+                        <div className="space-y-3">
+                          {provenance.distributionPath.map((entry, idx) => (
+                            <div key={idx} className="pl-4 border-l-2 border-primary/30 text-xs space-y-1">
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">{entry.from?.username || 'Unknown'}</span>
+                                <span className="text-muted-foreground">→</span>
+                                <span className="font-medium">{entry.recipient?.username || 'Unknown'}</span>
+                              </div>
+                              <div className="text-muted-foreground">
+                                To: {entry.recipient?.email || 'N/A'}
+                              </div>
+                              <div className="text-muted-foreground">{new Date(entry.sharedAt).toLocaleString()}</div>
                             </div>
                           ))}
                         </div>
