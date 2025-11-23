@@ -181,6 +181,7 @@ export function ChatPage({ userId, token, onLogout }) {
         <ThemeToggle />
       </motion.div>
 
+      {/* Mobile slide-in sidebar (visible when showSidebar on small screens) */}
       <AnimatePresence>
         {showSidebar && (
           <motion.div
@@ -188,9 +189,9 @@ export function ChatPage({ userId, token, onLogout }) {
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-y-0 left-0 z-40 w-72 md:w-80 bg-card border-r flex-col h-full overflow-hidden md:relative md:flex"
+            className="fixed inset-y-0 left-0 z-40 w-72 bg-card border-r flex-col h-full overflow-hidden md:hidden"
           >
-            <div className="hidden md:flex p-4 border-b items-center justify-between">
+            <div className="p-4 border-b items-center justify-between flex">
               <h1 className="text-xl font-semibold">ChatPerMedia</h1>
               <div className="flex gap-2">
                 <motion.div whileTap={{ scale: 0.9 }}>
@@ -202,7 +203,7 @@ export function ChatPage({ userId, token, onLogout }) {
               </div>
             </div>
 
-            <div className="flex-1 overflow-hidden mt-16 md:mt-0">
+            <div className="flex-1 overflow-hidden mt-0">
               <UserList 
                 users={users} 
                 selectedUser={selectedUser} 
@@ -257,6 +258,68 @@ export function ChatPage({ userId, token, onLogout }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Desktop sidebar (always visible on md and larger) */}
+      <div className="hidden md:flex md:relative md:w-80 bg-card border-r flex-col h-full overflow-hidden z-10">
+        <div className="flex p-4 border-b items-center justify-between">
+          <h1 className="text-xl font-semibold">ChatPerMedia</h1>
+          <div className="flex gap-2">
+            <motion.div whileTap={{ scale: 0.9 }}>
+              <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh">
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </motion.div>
+            <ThemeToggle />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-hidden">
+          <UserList 
+            users={users} 
+            selectedUser={selectedUser} 
+            onSelectUser={(uid) => {
+              handleSelectUser(uid);
+            }}
+            currentUserId={userId}
+            onRefresh={fetchUsers}
+            refreshing={refreshing}
+            unreadCounts={unreadCounts}
+          />
+        </div>
+
+        <Separator />
+
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="w-10 h-10 ring-2 ring-primary/20">
+              <AvatarImage 
+                src={currentUser?.avatar ? `${API_BASE_URL}${currentUser.avatar}` : undefined}
+                alt={currentUser?.username}
+              />
+              <AvatarFallback className="bg-primary/20 text-primary font-semibold">
+                {currentUser?.username?.[0]?.toUpperCase() || '?'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium truncate">{currentUser?.username || 'You'}</div>
+              <div className="text-xs text-muted-foreground truncate">{currentUser?.email}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Button onClick={handleClearMessages} variant="outline" size="sm" className="col-span-2 text-destructive hover:bg-destructive/10 w-full">
+                <Trash2 className="h-4 w-4 mr-2" />Clear Messages
+              </Button>
+            </div>
+            <div>
+              <Button onClick={onLogout} variant="secondary" size="sm" className="w-full">Logout</Button>
+            </div>
+            <div>
+              <Button onClick={handleDeleteAccount} variant="destructive" size="sm" className="w-full">Delete Account</Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
             <AnimatePresence>
         {showSidebar && (

@@ -35,5 +35,5 @@ ENV NODE_ENV=production
 ENV MONGO_URI=${MONGO_URI}
 ENV PORT=3001
 CMD sh -c 'pnpm concurrently -n microservice,backend -c magenta,blue \
-   "gunicorn --chdir microservice -w 2 -b 0.0.0.0:5000 app:app" \
+   "gunicorn --chdir microservice -w 2 -b 0.0.0.0:5000 --timeout 300 app:app" \
    "node backend/index.js"'
