@@ -7,10 +7,10 @@ const { asyncHandler, sendSuccess } = require('../utils/apiHandler');
 
 const router = express.Router();
 
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024 
+    fileSize: 100 * 1024 * 1024
   }
 });
 
@@ -19,13 +19,19 @@ router.post('/', upload.single('file'), asyncHandler(async (req, res) => {
   if (!file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  const creatorId = req.userId; 
+
+  // Fix: Use req.user.userId instead of req.userId
+  const creatorId = req.user.userId;
+
   const media = new Media({
     creatorId,
-    filePath: '', 
+    // Fix: Set placeholder filePath to satisfy required validation
+    filePath: 'pending',
     mediaType: file.mimetype.startsWith('video/') ? 'video' : 'image'
   });
+
   await media.save();
+
   const formData = new FormData();
   formData.append('file', file.buffer, file.originalname);
   formData.append('media_id', media._id.toString());
@@ -35,7 +41,7 @@ router.post('/', upload.single('file'), asyncHandler(async (req, res) => {
     headers,
     maxBodyLength: Infinity,
     maxContentLength: Infinity,
-    timeout: 300000 
+    timeout: 300000
   });
 
   if (response.data.status !== 'success') {
