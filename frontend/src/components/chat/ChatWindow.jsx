@@ -52,7 +52,7 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
     const { data } = await uploadFile('/upload', formData, token, {
       errorMessage: 'Upload failed'
     });
-    
+
     if (data) {
       onUploadMedia(data.mediaId);
       fileInputRef.current.value = '';
@@ -81,7 +81,7 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
 
   const fetchProvenance = async (mediaId) => {
     if (!mediaId) return toast.error('Media ID not available');
-    
+
     const { data } = await api.fetchWithLoading(`/media/${mediaId}/provenance`, setLoadingProvenance, {
       successMessage: 'Provenance loaded',
       errorMessage: 'Failed to fetch provenance'
@@ -98,15 +98,15 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
 
   const renderMediaPreview = (msg) => {
     if (msg.mediaUrl === 'loading...') return <div className="p-4 text-center">Uploading...</div>;
-    
+
     const mediaType = getMediaType(msg);
     const mediaData = { type: mediaType, url: msg.mediaUrl, sender: userMap[msg.senderId], mediaId: msg.mediaId };
     const MediaTag = mediaType === 'video' ? 'video' : 'img';
-    
+
     return (
       <div className="cursor-pointer" onClick={() => handleMediaClick(mediaData)}>
-        <MediaTag 
-          src={msg.mediaUrl} 
+        <MediaTag
+          src={msg.mediaUrl}
           alt={mediaType === 'image' ? 'shared media' : undefined}
           className="max-w-full rounded-lg"
           onContextMenu={(e) => e.preventDefault()}
@@ -120,22 +120,22 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <ScrollArea className="flex-1 px-2 md:px-4 bg-muted/20 overflow-y-auto">
-        <div className="space-y-2 md:space-y-3 py-2 md:py-4">
+    <div className="flex flex-col h-full overflow-hidden relative">
+      <ScrollArea className="flex-1 px-2 md:px-4 overflow-y-auto">
+        <div className="space-y-4 py-4 md:py-6">
           <AnimatePresence initial={false}>
             {messages.map((msg, index) => {
               const msgDate = new Date(msg.timestamp || msg.createdAt);
               const showDateSeparator = index === 0 || msgDate.toDateString() !== new Date(messages[index - 1].timestamp || messages[index - 1].createdAt).toDateString();
               const isOwn = msg.senderId === userId;
-              
+
               return (
-                <motion.div 
+                <motion.div
                   key={`${msg._id || index}`}
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ 
+                  transition={{
                     type: "spring",
                     stiffness: 500,
                     damping: 30,
@@ -144,74 +144,76 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
                   layout
                 >
                   {showDateSeparator && (
-                    <motion.div 
-                      className="flex justify-center my-2 md:my-4"
+                    <motion.div
+                      className="flex justify-center my-6"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <span className="text-[10px] md:text-xs text-muted-foreground bg-muted px-2 md:px-3 py-1 rounded-full">
+                      <span className="text-[10px] md:text-xs font-medium text-muted-foreground/80 bg-muted/50 backdrop-blur-sm px-4 py-1.5 rounded-full border border-border/50 shadow-sm">
                         {msgDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                       </span>
                     </motion.div>
                   )}
-                  <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
-                    <div className="flex items-end gap-1">
+                  <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group mb-1`}>
+                    <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[75%] md:max-w-md ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                       {!isOwn && (
-                        <motion.div
-                          initial={{ opacity: 0, x: -10 }}
-                          whileHover={{ opacity: 1, x: 0 }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleForwardClick(msg)}
-                            title="Forward message"
-                          >
-                            <Forward className="h-3 w-3" />
-                          </Button>
-                        </motion.div>
+                        <Avatar className="w-6 h-6 md:w-8 md:h-8 mb-1 ring-2 ring-background shadow-sm">
+                          <AvatarImage src={users.find(u => u._id === msg.senderId)?.avatar ? `${API_BASE_URL}${users.find(u => u._id === msg.senderId).avatar}` : undefined} />
+                          <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                            {userMap[msg.senderId]?.charAt(0)?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                       )}
-                      <motion.div
-                        className={`max-w-[85%] sm:max-w-[75%] md:max-w-md px-2 md:px-3 py-1.5 md:py-2 rounded-2xl shadow-sm text-sm md:text-base ${
-                          isOwn ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-background border rounded-bl-sm'
-                        }`}
-                        onContextMenu={(e) => e.preventDefault()}
-                        onDragStart={(e) => e.preventDefault()}
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ type: "spring", stiffness: 400 }}
-                      >
-                        {msg.mediaUrl ? (
-                          <div className="relative">{renderMediaPreview(msg)}</div>
-                        ) : (
-                          <div className="break-words whitespace-pre-wrap flex items-start gap-2">
-                            {(msg.oldEncrypted || (msg.ciphertext && !msg.decrypted)) && <Lock className="h-3 w-3 mt-0.5 flex-shrink-0" />}
-                            <span>{msg.text || (msg.ciphertext ? '[Encrypted]' : 'Message')}</span>
-                          </div>
-                        )}
-                        <div className={`text-[10px] mt-1 ${isOwn ? 'text-primary-foreground/60 text-right' : 'text-muted-foreground'}`}>
-                          {formatTime(msg.timestamp || msg.createdAt || Date.now())}
+
+                      <div className="flex flex-col gap-1">
+                        <motion.div
+                          className={`px-4 py-2 md:py-3 shadow-sm text-sm md:text-base relative ${isOwn
+                              ? 'bg-gradient-to-br from-primary to-indigo-600 text-primary-foreground rounded-2xl rounded-tr-sm'
+                              : 'bg-card border text-card-foreground rounded-2xl rounded-tl-sm'
+                            }`}
+                          onContextMenu={(e) => e.preventDefault()}
+                          onDragStart={(e) => e.preventDefault()}
+                          whileHover={{ scale: 1.01 }}
+                          transition={{ type: "spring", stiffness: 400 }}
+                        >
+                          {msg.mediaUrl ? (
+                            <div className="relative -mx-2 -my-1 md:-mx-3 md:-my-2">
+                              <div className="rounded-xl overflow-hidden">
+                                {renderMediaPreview(msg)}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="break-words whitespace-pre-wrap flex items-start gap-2">
+                              {(msg.oldEncrypted || (msg.ciphertext && !msg.decrypted)) && <Lock className="h-3.5 w-3.5 mt-1 flex-shrink-0 opacity-70" />}
+                              <span className="leading-relaxed">{msg.text || (msg.ciphertext ? '[Encrypted]' : 'Message')}</span>
+                            </div>
+                          )}
+                        </motion.div>
+                        <div className={`text-[10px] px-1 flex items-center gap-1 ${isOwn ? 'justify-end text-muted-foreground' : 'justify-start text-muted-foreground'}`}>
+                          <span>{formatTime(msg.timestamp || msg.createdAt || Date.now())}</span>
+                          {isOwn && (
+                            <motion.button
+                              initial={{ opacity: 0 }}
+                              whileHover={{ opacity: 1 }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleForwardClick(msg)}
+                            >
+                              <Forward className="h-3 w-3" />
+                            </motion.button>
+                          )}
+                          {!isOwn && (
+                            <motion.button
+                              initial={{ opacity: 0 }}
+                              whileHover={{ opacity: 1 }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleForwardClick(msg)}
+                            >
+                              <Forward className="h-3 w-3" />
+                            </motion.button>
+                          )}
                         </div>
-                      </motion.div>
-                      {isOwn && (
-                        <motion.div
-                          initial={{ opacity: 0, x: 10 }}
-                          whileHover={{ opacity: 1, x: 0 }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleForwardClick(msg)}
-                            title="Forward message"
-                          >
-                            <Forward className="h-3 w-3" />
-                          </Button>
-                        </motion.div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -221,17 +223,23 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-      
-      <motion.div 
-        className="bg-card border-t p-2 md:p-4"
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      >
-        <div className="flex gap-1 md:gap-2">
+
+      <div className="p-4 bg-gradient-to-t from-background via-background to-transparent pt-10">
+        <motion.div
+          className="bg-card/80 backdrop-blur-xl border shadow-lg rounded-2xl p-2 flex items-center gap-2 ring-1 ring-border/50"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        >
           <input ref={fileInputRef} type="file" accept="video/*,image/*" onChange={handleFileSelect} className="hidden" />
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-            <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" disabled={uploading} title="Attach media" className="h-9 w-9 md:h-10 md:w-10">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              variant="ghost"
+              size="icon"
+              disabled={uploading}
+              className="h-10 w-10 rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+            >
               <AnimatePresence mode="wait">
                 {uploading ? (
                   <motion.div
@@ -241,7 +249,7 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
                     exit={{ opacity: 0 }}
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   >
-                    <Loader2 className="h-4 w-4 md:h-5 md:w-5" />
+                    <Loader2 className="h-5 w-5" />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -250,59 +258,43 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.5 }}
                   >
-                    <Paperclip className="h-4 w-4 md:h-5 md:w-5" />
+                    <Paperclip className="h-5 w-5" />
                   </motion.div>
                 )}
               </AnimatePresence>
             </Button>
           </motion.div>
-          <motion.div 
-            className="flex-1"
-            whileFocus={{ scale: 1.01 }}
-            transition={{ type: "spring", stiffness: 400 }}
-          >
+
+          <div className="flex-1">
             <Input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Write a message... (Enter to send, Shift+Enter for new line)"
-              className="flex-1 bg-background text-sm md:text-base h-9 md:h-10 transition-all focus:ring-2"
+              placeholder="Type a message..."
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-2 text-base placeholder:text-muted-foreground/50 h-10"
               disabled={uploading}
               autoFocus
             />
-          </motion.div>
-          <motion.div 
-            whileHover={{ scale: message.trim() ? 1.1 : 1, rotate: message.trim() ? -15 : 0 }} 
-            whileTap={{ scale: 0.9 }}
-            animate={{ 
-              scale: message.trim() ? 1 : 0.9,
-              opacity: message.trim() ? 1 : 0.5
-            }}
-            transition={{ duration: 0.2 }}
+          </div>
+
+          <motion.div
+            whileHover={{ scale: message.trim() ? 1.05 : 1 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Button 
-              onClick={handleSend} 
-              size="icon" 
-              className={`h-9 w-9 md:h-10 md:w-10 transition-all ${message.trim() ? 'bg-primary hover:bg-primary/90' : ''}`}
+            <Button
+              onClick={handleSend}
+              size="icon"
+              className={`h-10 w-10 rounded-xl transition-all duration-300 ${message.trim()
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                  : 'bg-muted text-muted-foreground'
+                }`}
               disabled={uploading || !message.trim()}
-              title={message.trim() ? 'Send message (Enter)' : 'Type a message first'}
             >
-              <motion.div
-                animate={{ 
-                  x: message.trim() ? [0, 2, 0] : 0 
-                }}
-                transition={{ 
-                  duration: 0.5,
-                  repeat: message.trim() ? Infinity : 0,
-                  repeatDelay: 1
-                }}
-              >
-                <Send className="h-4 w-4 md:h-5 md:w-5" />
-              </motion.div>
+              <Send className="h-5 w-5 ml-0.5" />
             </Button>
           </motion.div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       <MediaViewerDialog
         open={mediaDialogOpen}

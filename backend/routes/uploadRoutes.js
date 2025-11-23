@@ -20,12 +20,10 @@ router.post('/', upload.single('file'), asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
-  // Fix: Use req.user.userId instead of req.userId
   const creatorId = req.user.userId;
 
   const media = new Media({
     creatorId,
-    // Fix: Set placeholder filePath to satisfy required validation
     filePath: 'pending',
     mediaType: file.mimetype.startsWith('video/') ? 'video' : 'image'
   });
@@ -37,7 +35,7 @@ router.post('/', upload.single('file'), asyncHandler(async (req, res) => {
   formData.append('media_id', media._id.toString());
 
   const headers = formData.getHeaders();
-  const response = await axios.post('http://localhost:5000/api/v1/embed_media_id', formData, {
+  const response = await axios.post('http://127.0.0.1:5000/api/v1/embed_media_id', formData, {
     headers,
     maxBodyLength: Infinity,
     maxContentLength: Infinity,

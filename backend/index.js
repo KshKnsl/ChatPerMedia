@@ -42,7 +42,7 @@ app.use("/uploads/avatars", express.static("uploads/avatars"));
 app.get("/media/*", async (req, res) => {
   try {
     const mediaPath = req.path;
-    const microserviceUrl = `http://localhost:5000${mediaPath}`;
+    const microserviceUrl = `http://127.0.0.1:5000${mediaPath}`;
     const response = await axios.get(microserviceUrl, {
       responseType: "stream",
     });
@@ -112,9 +112,9 @@ app.post("/api/media/extract", authenticateToken, asyncHandler(async (req, res) 
   if (!file_path) return res.status(400).json({ error: "file_path is required" });
 
   console.log(`[API] Requesting media ID extraction for: ${file_path}`);
-  const response = await axios.post("http://localhost:5000/api/v1/extract_media_id", { file_path });
+  const response = await axios.post("http://127.0.0.1:5000/api/v1/extract_media_id", { file_path });
   console.log(`[API] Extraction result:`, response.data);
-  
+
   if (response.data.status === 'success' && response.data.media_id) {
     const media = await Media.findById(response.data.media_id).populate("creatorId", "username email");
     if (media) {
@@ -287,7 +287,6 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // Add recipient to distribution path
       media.distributionPath.push({
         recipientId: receiverId,
         fromUserId: socket.userId,
@@ -296,7 +295,6 @@ io.on("connection", (socket) => {
       await media.save();
       console.log(`[SOCKET] Recipient added to distribution path: ${receiverId}`);
 
-      // Get media URL (file already has media ID embedded)
       let mediaUrl = media.filePath;
       if (mediaUrl.startsWith('media/')) {
         mediaUrl = `/${mediaUrl}`;
@@ -323,7 +321,7 @@ io.on("connection", (socket) => {
         mediaId: media._id.toString(),
       });
       console.log(`[SOCKET] Media shared with receiver: ${receiverId}`);
-      
+
       socket.emit("mediaSent", {
         messageId: message._id,
         receiverId,

@@ -37,7 +37,7 @@ export function ChatPage({ userId, token, onLogout }) {
       if (!selectedUser || document.activeElement.tagName !== 'INPUT') {
         const filteredUsers = users.filter(u => u._id !== userId);
         const currentIndex = filteredUsers.findIndex(u => u._id === selectedUser);
-        
+
         if (e.key === 'ArrowUp' && currentIndex > 0) {
           e.preventDefault();
           handleSelectUser(filteredUsers[currentIndex - 1]._id);
@@ -68,7 +68,7 @@ export function ChatPage({ userId, token, onLogout }) {
 
     const decrypted = await decryptHistory(data, selectedUserId);
     setMessages(decrypted);
-    
+
     if (!sharedKey) {
       const checkKey = setInterval(async () => {
         if (sharedKey) {
@@ -130,15 +130,18 @@ export function ChatPage({ userId, token, onLogout }) {
   const selectedUserData = users.find(u => u._id === selectedUser);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      <motion.div 
-        className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-b p-4 flex items-center justify-between"
+    <div className="flex h-screen bg-background overflow-hidden relative">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-grid-slate-200/20 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-800/20 pointer-events-none" />
+
+      <motion.div
+        className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-md border-b p-4 flex items-center justify-between shadow-sm"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
       >
         <motion.div whileTap={{ scale: 0.9 }}>
-          <Button onClick={() => setShowSidebar(!showSidebar)} variant="ghost" size="icon">
+          <Button onClick={() => setShowSidebar(!showSidebar)} variant="ghost" size="icon" className="hover:bg-primary/10">
             <motion.div
               animate={{ rotate: showSidebar ? 180 : 0 }}
               transition={{ duration: 0.3 }}
@@ -157,21 +160,21 @@ export function ChatPage({ userId, token, onLogout }) {
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="flex items-center gap-2"
               >
-                <Avatar className="w-8 h-8">
+                <Avatar className="w-8 h-8 ring-2 ring-primary/10">
                   <AvatarImage src={selectedUserData.avatar ? `${API_BASE_URL}${selectedUserData.avatar}` : undefined} alt={userMap[selectedUser]} />
-                  <AvatarFallback className="bg-primary/20 text-primary">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                     {userMap[selectedUser]?.charAt(0)?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-semibold">{userMap[selectedUser]}</span>
+                <span className="font-semibold text-sm">{userMap[selectedUser]}</span>
               </motion.div>
             ) : (
-              <motion.h1 
+              <motion.h1
                 key="logo"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="text-lg font-semibold"
+                className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500"
               >
                 ChatPerMedia
               </motion.h1>
@@ -181,7 +184,7 @@ export function ChatPage({ userId, token, onLogout }) {
         <ThemeToggle />
       </motion.div>
 
-      {/* Mobile slide-in sidebar (visible when showSidebar on small screens) */}
+      {/* Mobile slide-in sidebar */}
       <AnimatePresence>
         {showSidebar && (
           <motion.div
@@ -189,13 +192,13 @@ export function ChatPage({ userId, token, onLogout }) {
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-y-0 left-0 z-40 w-72 bg-card border-r flex-col h-full overflow-hidden md:hidden"
+            className="fixed inset-y-0 left-0 z-40 w-80 bg-card/95 backdrop-blur-xl border-r shadow-2xl flex-col h-full overflow-hidden md:hidden"
           >
-            <div className="p-4 border-b items-center justify-between flex">
-              <h1 className="text-xl font-semibold">ChatPerMedia</h1>
+            <div className="p-6 border-b items-center justify-between flex bg-muted/30">
+              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">ChatPerMedia</h1>
               <div className="flex gap-2">
                 <motion.div whileTap={{ scale: 0.9 }}>
-                  <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh">
+                  <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh" className="hover:bg-primary/10">
                     <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                   </Button>
                 </motion.div>
@@ -203,10 +206,10 @@ export function ChatPage({ userId, token, onLogout }) {
               </div>
             </div>
 
-            <div className="flex-1 overflow-hidden mt-0">
-              <UserList 
-                users={users} 
-                selectedUser={selectedUser} 
+            <div className="flex-1 overflow-hidden mt-0 p-2">
+              <UserList
+                users={users}
+                selectedUser={selectedUser}
                 onSelectUser={(uid) => {
                   handleSelectUser(uid);
                   setShowSidebar(false);
@@ -218,54 +221,41 @@ export function ChatPage({ userId, token, onLogout }) {
               />
             </div>
 
-            <Separator />
-            
-            <motion.div 
-              className="p-4 space-y-3"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex items-center gap-3">
+            <div className="p-4 bg-muted/30 border-t space-y-3">
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-background/50 border shadow-sm">
                 <Avatar className="w-10 h-10 ring-2 ring-primary/20">
-                  <AvatarImage 
+                  <AvatarImage
                     src={currentUser?.avatar ? `${API_BASE_URL}${currentUser.avatar}` : undefined}
                     alt={currentUser?.username}
                   />
-                  <AvatarFallback className="bg-primary/20 text-primary font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
                     {currentUser?.username?.[0]?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">{currentUser?.username || 'You'}</div>
+                  <div className="text-sm font-semibold truncate">{currentUser?.username || 'You'}</div>
                   <div className="text-xs text-muted-foreground truncate">{currentUser?.email}</div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button onClick={handleClearMessages} variant="outline" size="sm" className="col-span-2 text-destructive hover:bg-destructive/10 w-full">
-                    <Trash2 className="h-4 w-4 mr-2" />Clear Messages
-                  </Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button onClick={onLogout} variant="secondary" size="sm" className="w-full">Logout</Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button onClick={handleDeleteAccount} variant="destructive" size="sm" className="w-full">Delete Account</Button>
-                </motion.div>
+                <Button onClick={handleClearMessages} variant="outline" size="sm" className="col-span-2 text-destructive hover:bg-destructive/10 hover:text-destructive w-full border-destructive/20">
+                  <Trash2 className="h-4 w-4 mr-2" />Clear Messages
+                </Button>
+                <Button onClick={onLogout} variant="secondary" size="sm" className="w-full hover:bg-secondary/80">Logout</Button>
+                <Button onClick={handleDeleteAccount} variant="destructive" size="sm" className="w-full shadow-sm">Delete</Button>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Desktop sidebar (always visible on md and larger) */}
-      <div className="hidden md:flex md:relative md:w-80 bg-card border-r flex-col h-full overflow-hidden z-10">
-        <div className="flex p-4 border-b items-center justify-between">
-          <h1 className="text-xl font-semibold">ChatPerMedia</h1>
+      {/* Desktop sidebar */}
+      <div className="hidden md:flex md:relative md:w-80 bg-card/50 backdrop-blur-sm border-r flex-col h-full overflow-hidden z-10 shadow-sm">
+        <div className="flex p-6 border-b items-center justify-between bg-muted/10">
+          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">ChatPerMedia</h1>
           <div className="flex gap-2">
             <motion.div whileTap={{ scale: 0.9 }}>
-              <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh">
+              <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh" className="hover:bg-primary/10">
                 <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               </Button>
             </motion.div>
@@ -273,10 +263,10 @@ export function ChatPage({ userId, token, onLogout }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden">
-          <UserList 
-            users={users} 
-            selectedUser={selectedUser} 
+        <div className="flex-1 overflow-hidden p-3">
+          <UserList
+            users={users}
+            selectedUser={selectedUser}
             onSelectUser={(uid) => {
               handleSelectUser(uid);
             }}
@@ -287,47 +277,39 @@ export function ChatPage({ userId, token, onLogout }) {
           />
         </div>
 
-        <Separator />
-
-        <div className="p-4 space-y-3">
-          <div className="flex items-center gap-3">
+        <div className="p-4 border-t bg-muted/10 space-y-3">
+          <div className="flex items-center gap-3 p-2 rounded-xl bg-background/80 border shadow-sm">
             <Avatar className="w-10 h-10 ring-2 ring-primary/20">
-              <AvatarImage 
+              <AvatarImage
                 src={currentUser?.avatar ? `${API_BASE_URL}${currentUser.avatar}` : undefined}
                 alt={currentUser?.username}
               />
-              <AvatarFallback className="bg-primary/20 text-primary font-semibold">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
                 {currentUser?.username?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium truncate">{currentUser?.username || 'You'}</div>
+              <div className="text-sm font-semibold truncate">{currentUser?.username || 'You'}</div>
               <div className="text-xs text-muted-foreground truncate">{currentUser?.email}</div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Button onClick={handleClearMessages} variant="outline" size="sm" className="col-span-2 text-destructive hover:bg-destructive/10 w-full">
-                <Trash2 className="h-4 w-4 mr-2" />Clear Messages
-              </Button>
-            </div>
-            <div>
-              <Button onClick={onLogout} variant="secondary" size="sm" className="w-full">Logout</Button>
-            </div>
-            <div>
-              <Button onClick={handleDeleteAccount} variant="destructive" size="sm" className="w-full">Delete Account</Button>
-            </div>
+            <Button onClick={handleClearMessages} variant="outline" size="sm" className="col-span-2 text-destructive hover:bg-destructive/10 hover:text-destructive w-full border-destructive/20 transition-colors">
+              <Trash2 className="h-4 w-4 mr-2" />Clear Messages
+            </Button>
+            <Button onClick={onLogout} variant="secondary" size="sm" className="w-full hover:bg-secondary/80 transition-colors">Logout</Button>
+            <Button onClick={handleDeleteAccount} variant="destructive" size="sm" className="w-full shadow-sm hover:bg-destructive/90 transition-colors">Delete</Button>
           </div>
         </div>
       </div>
 
-            <AnimatePresence>
+      <AnimatePresence>
         {showSidebar && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
             onClick={() => setShowSidebar(false)}
           />
         )}
@@ -341,19 +323,19 @@ export function ChatPage({ userId, token, onLogout }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="flex-1 flex flex-col h-full overflow-hidden"
+            className="flex-1 flex flex-col h-full overflow-hidden relative z-0"
           >
-            <ChatHeader 
+            <ChatHeader
               selectedUserName={userMap[selectedUser]}
               selectedUserAvatar={selectedUserData?.avatar ? `${API_BASE_URL}${selectedUserData.avatar}` : null}
               onMenuClick={() => setShowSidebar(true)}
               onDeleteChat={handleDeleteChat}
             />
-            <div className="flex-1 overflow-hidden">
-              <ChatWindow 
-                messages={messages} 
-                onSendMessage={sendMessage} 
-                userId={userId} 
+            <div className="flex-1 overflow-hidden bg-background/50 backdrop-blur-sm">
+              <ChatWindow
+                messages={messages}
+                onSendMessage={sendMessage}
+                userId={userId}
                 userMap={userMap}
                 onUploadMedia={shareMedia}
                 token={token}
@@ -365,31 +347,34 @@ export function ChatPage({ userId, token, onLogout }) {
             </div>
           </motion.div>
         ) : (
-          <motion.div 
+          <motion.div
             key="empty-view"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className="flex-1 flex items-center justify-center px-4"
+            className="flex-1 flex items-center justify-center px-4 relative z-0"
           >
-            <div className="text-center">
+            <div className="text-center p-8 rounded-3xl bg-card/30 backdrop-blur-md border border-border/50 shadow-2xl max-w-md">
               <motion.div
-                animate={{ 
+                animate={{
                   y: [0, -10, 0],
                   rotate: [0, 5, -5, 0]
                 }}
-                transition={{ 
-                  duration: 3,
+                transition={{
+                  duration: 4,
                   repeat: Infinity,
-                  repeatType: "reverse"
+                  repeatType: "reverse",
+                  ease: "easeInOut"
                 }}
+                className="inline-block p-6 rounded-full bg-primary/5 mb-6 ring-1 ring-primary/10"
               >
-                <MessageCircle className="h-16 w-16 md:h-24 md:w-24 mx-auto mb-4 text-muted-foreground" />
+                <MessageCircle className="h-16 w-16 md:h-20 md:w-20 text-primary/80" />
               </motion.div>
-              <div className="text-lg md:text-xl text-muted-foreground">Select a chat to start messaging</div>
+              <h2 className="text-2xl font-bold mb-2">Welcome to ChatPerMedia</h2>
+              <p className="text-muted-foreground mb-6">Select a conversation from the sidebar to start messaging securely.</p>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button onClick={() => setShowSidebar(true)} variant="outline" className="mt-4 lg:hidden">
+                <Button onClick={() => setShowSidebar(true)} variant="default" className="md:hidden shadow-lg shadow-primary/20">
                   <Menu className="h-4 w-4 mr-2" />Open Chats
                 </Button>
               </motion.div>

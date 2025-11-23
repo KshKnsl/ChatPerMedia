@@ -10,7 +10,7 @@ export function ForwardMessageDialog({ open, onOpenChange, users, userId, select
       if (e.key === 'Escape' && open) {
         onOpenChange(false);
       }
-      
+
       if (open && e.key >= '1' && e.key <= '9') {
         const filteredUsers = users?.filter(u => u._id !== userId && u._id !== selectedUser) || [];
         const index = parseInt(e.key) - 1;
@@ -29,13 +29,13 @@ export function ForwardMessageDialog({ open, onOpenChange, users, userId, select
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogTitle className="text-lg font-semibold">Forward Message To</DialogTitle>
+      <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl">
+        <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">Forward Message</DialogTitle>
         <DialogDescription className="text-sm text-muted-foreground mb-2">
-          Press number keys 1-9 for quick selection, or Escape to cancel
+          Select a user to forward this message to.
         </DialogDescription>
-        <ScrollArea className="h-[300px] w-full rounded-md border p-4">
-          <div className="space-y-2">
+        <ScrollArea className="h-[350px] w-full pr-4 -mr-4">
+          <div className="space-y-2 p-1">
             <AnimatePresence>
               {users
                 ?.filter(user => user._id !== userId && user._id !== selectedUser)
@@ -49,7 +49,7 @@ export function ForwardMessageDialog({ open, onOpenChange, users, userId, select
                     whileHover={{ scale: 1.02, x: 4 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => onForwardToUser(user._id)}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left relative focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all text-left relative group focus:outline-none focus:ring-2 focus:ring-primary/50"
                     autoFocus={index === 0}
                     tabIndex={0}
                     onKeyDown={(e) => {
@@ -60,22 +60,22 @@ export function ForwardMessageDialog({ open, onOpenChange, users, userId, select
                     }}
                   >
                     {index < 9 && (
-                      <div className="absolute top-2 right-2 bg-primary/20 text-primary text-xs font-bold rounded px-1.5 py-0.5">
+                      <div className="absolute top-3 right-3 bg-muted text-muted-foreground text-[10px] font-bold rounded-md px-1.5 py-0.5 border opacity-50 group-hover:opacity-100 transition-opacity">
                         {index + 1}
                       </div>
                     )}
-                    <Avatar className="w-10 h-10 ring-2 ring-primary/20">
-                      <AvatarImage 
+                    <Avatar className="w-10 h-10 ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all">
+                      <AvatarImage
                         src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
                         alt={user.username}
                       />
-                      <AvatarFallback className="bg-primary/20 text-primary">
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
                         {user.username?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <div className="font-medium">{user.username}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{user.username}</div>
+                      <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                     </div>
                   </motion.button>
                 ))}

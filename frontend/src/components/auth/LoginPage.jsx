@@ -39,12 +39,12 @@ export function LoginPage({ onLogin }) {
       if (avatar) {
         formData.append('avatar', avatar);
       }
-      
+
       const { data } = await uploadFile('/auth/register', formData, null, {
         successMessage: 'Account created! Please login.',
         errorMessage: 'Registration failed'
       });
-      
+
       if (data) {
         setIsRegister(false);
         setEmail('');
@@ -62,149 +62,153 @@ export function LoginPage({ onLogin }) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="flex items-center justify-center min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-400/20 via-background to-background">
+      <div className="absolute inset-0 bg-grid-slate-200/20 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-800/20 pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-md px-4"
       >
-        <Card className="w-full max-w-md border-border shadow-lg">
-          <CardHeader className="space-y-1 text-center">
-            <motion.div 
-              className="mb-4 flex justify-center"
+        <Card className="w-full border-border/50 shadow-2xl backdrop-blur-xl bg-card/80">
+          <CardHeader className="space-y-2 text-center pb-8">
+            <motion.div
+              className="mb-6 flex justify-center"
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
             >
-              <MessageSquare className="h-12 w-12 text-primary" />
+              <div className="p-4 rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+                <MessageSquare className="h-10 w-10 text-primary" />
+              </div>
             </motion.div>
-            <CardTitle className="text-2xl font-bold text-foreground">
-              {isRegister ? 'Create Account' : 'ChatPerMedia'}
+            <CardTitle className="text-3xl font-bold tracking-tight text-foreground">
+              {isRegister ? 'Create Account' : 'Welcome Back'}
             </CardTitle>
             <p className="text-muted-foreground text-sm">
-              {isRegister ? 'Sign up to get started' : 'Sign in to your account'}
+              {isRegister ? 'Enter your details to get started' : 'Enter your credentials to access your account'}
             </p>
           </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <AnimatePresence mode="wait">
-              {isRegister && (
-                <motion.div 
-                  key="avatar-section"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex flex-col items-center space-y-3 pb-4 border-b border-border"
-                >
-                  <div className="relative">
-                    <motion.div 
-                      className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      {avatarPreview ? (
-                        <motion.img 
-                          src={avatarPreview} 
-                          alt="Avatar preview" 
-                          className="w-full h-full object-cover"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.3 }}
-                        />
-                      ) : (
-                        <User className="w-12 h-12 text-muted-foreground" />
-                      )}
-                    </motion.div>
-                    <motion.label 
-                      htmlFor="avatar-upload" 
-                      className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <Upload className="w-4 h-4" />
-                    </motion.label>
-                    <input
-                      id="avatar-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">Click icon to upload avatar (optional)</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Input
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="bg-background transition-all focus:scale-[1.02]"
-              />
-            </motion.div>
-            
-            <AnimatePresence mode="wait">
-              {isRegister && (
-                <motion.div 
-                  key="email-field"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-2"
-                >
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <AnimatePresence mode="wait">
+                {isRegister && (
+                  <motion.div
+                    key="avatar-section"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-col items-center space-y-3 pb-6"
+                  >
+                    <div className="relative group">
+                      <motion.div
+                        className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border shadow-sm group-hover:border-primary/50 transition-colors"
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        {avatarPreview ? (
+                          <motion.img
+                            src={avatarPreview}
+                            alt="Avatar preview"
+                            className="w-full h-full object-cover"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                          />
+                        ) : (
+                          <User className="w-10 h-10 text-muted-foreground/50" />
+                        )}
+                      </motion.div>
+                      <motion.label
+                        htmlFor="avatar-upload"
+                        className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer shadow-lg hover:bg-primary/90 transition-all hover:scale-110"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                      </motion.label>
+                      <input
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground font-medium">Upload profile picture</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <motion.div
+                className="space-y-4"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="space-y-2">
                   <Input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="bg-background transition-all focus:scale-[1.02]"
+                    className="bg-background/50 border-muted-foreground/20 focus:border-primary/50 transition-all h-11"
                   />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-background transition-all focus:scale-[1.02]"
-              />
-            </motion.div>
-            
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Button type="submit" className="w-full">
-                {isRegister ? 'Create Account' : 'Sign In'}
-              </Button>
-            </motion.div>
-          </form>
-          <div className="text-center mt-6">
-            <Button variant="link" onClick={() => setIsRegister(!isRegister)} className="text-sm">
-              {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-            </Button>
-          </div>
-        </CardContent>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {isRegister && (
+                    <motion.div
+                      key="email-field"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <Input
+                        type="email"
+                        placeholder="Email address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="bg-background/50 border-muted-foreground/20 focus:border-primary/50 transition-all h-11 mb-4"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="space-y-2">
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="bg-background/50 border-muted-foreground/20 focus:border-primary/50 transition-all h-11"
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="pt-4"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
+                  {isRegister ? 'Create Account' : 'Sign In'}
+                </Button>
+              </motion.div>
+            </form>
+            <div className="text-center mt-8">
+              <p className="text-sm text-muted-foreground">
+                {isRegister ? 'Already have an account?' : "Don't have an account?"}
+                <Button variant="link" onClick={() => setIsRegister(!isRegister)} className="text-primary font-semibold hover:text-primary/80 px-1.5">
+                  {isRegister ? 'Sign in' : 'Sign up'}
+                </Button>
+              </p>
+            </div>
+          </CardContent>
         </Card>
       </motion.div>
     </div>
