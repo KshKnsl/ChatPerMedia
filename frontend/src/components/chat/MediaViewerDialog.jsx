@@ -33,7 +33,6 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
         <DialogDescription className="sr-only">View shared media with provenance information</DialogDescription>
 
         <div className="relative w-full flex flex-col h-[85vh]">
-          {/* Header Controls */}
           <div className="absolute top-0 left-0 right-0 z-20 p-4 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent">
             <div className="flex gap-2">
               {selectedMedia?.mediaId && (
@@ -101,7 +100,6 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
             </Button>
           </div>
 
-          {/* Main Content Area */}
           <div className="flex-1 flex items-center justify-center bg-black/40 relative overflow-hidden">
             {selectedMedia && (
               <motion.div
@@ -130,7 +128,6 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
             )}
           </div>
 
-          {/* Info Panel (Provenance/Extraction) */}
           <AnimatePresence>
             {provenance && (
               <motion.div

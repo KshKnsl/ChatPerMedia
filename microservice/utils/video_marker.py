@@ -1,11 +1,9 @@
 import cv2
 
 def text_to_bits(text):
-    """Convert text to binary string"""
     return ''.join(format(ord(c), '08b') for c in text)
 
 def bits_to_text(bits):
-    """Convert binary string to text"""
     chars = [bits[i:i+8] for i in range(0, len(bits), 8)]
     return ''.join(chr(int(c, 2)) for c in chars if len(c) == 8 and int(c, 2) != 0)
 

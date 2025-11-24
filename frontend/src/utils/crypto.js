@@ -1,5 +1,3 @@
-// Cryptography utilities for ECDH key exchange and AES-GCM encryption
-
 export async function generateDHKeys() {
   const keyPair = await crypto.subtle.generateKey(
     {
@@ -14,7 +12,6 @@ export async function generateDHKeys() {
   return { privateKey, publicKey: arrayBufferToBase64(publicKeyRaw) };
 }
 
-// Persist and restore ECDH private keys (so history remains decryptable across sessions)
 export async function exportPrivateKeyJwk(privateKey) {
   const jwk = await crypto.subtle.exportKey('jwk', privateKey);
   return jwk;

@@ -99,7 +99,6 @@ export function useSocket(token, userId, selectedUser) {
       addMessage(msg, peerId);
       if (data.messageId) processedMessageIds.current.add(data.messageId);
       
-      // Increment unread count if not viewing this chat
       if (peerId !== selectedUser) {
         incrementUnread(peerId);
       }
@@ -139,7 +138,6 @@ export function useSocket(token, userId, selectedUser) {
         }
       });
 
-      // Load or generate persistent ECDH keypair
       let privateKey;
       let publicKey;
       try {
@@ -169,7 +167,6 @@ export function useSocket(token, userId, selectedUser) {
       privateKeyRef.current = privateKey;
       newSocket.emit('registerPublicKey', { publicKey });
 
-      // Restore cached peer public keys
       try {
         const peersRaw = localStorage.getItem(`peer_pubs_${userId}`);
         if (peersRaw) peerPublicKeysRef.current = JSON.parse(peersRaw) || {};
@@ -177,7 +174,6 @@ export function useSocket(token, userId, selectedUser) {
 
       newSocket.on('peerPublicKey', async (data) => {
         peerPublicKeysRef.current[data.peerId] = data.publicKey;
-        // Persist peers
         try {
           localStorage.setItem(`peer_pubs_${userId}`, JSON.stringify(peerPublicKeysRef.current));
         } catch {}
@@ -185,14 +181,12 @@ export function useSocket(token, userId, selectedUser) {
         peerSharedKeysRef.current[data.peerId] = key;
         setSharedKey(key);
         
-        // Process pending messages
         const pending = pendingMessagesRef.current[data.peerId] || [];
         for (const msgData of pending) {
           await processMessage(msgData, key, data.peerId);
         }
         delete pendingMessagesRef.current[data.peerId];
 
-        // If we're viewing this chat and have undecrypted history, re-decrypt now
         if (data.peerId === selectedUser) {
           const needsRedecrypt = messages?.some(m => m.ciphertext && !m.decrypted);
           if (needsRedecrypt) {
@@ -222,7 +216,6 @@ export function useSocket(token, userId, selectedUser) {
       newSocket.on('receiveMedia', (data) => {
         addMessage({ mediaUrl: data.url, mediaType: data.mediaType, senderId: data.senderId, timestamp: new Date(), mediaId: data.mediaId }, data.senderId);
         
-        // Increment unread count if not viewing this chat
         if (data.senderId !== selectedUser) {
           incrementUnread(data.senderId);
         }
@@ -255,7 +248,6 @@ export function useSocket(token, userId, selectedUser) {
     return () => socket?.disconnect();
   }, [token]);
 
-  // Load unread counts on mount
   useEffect(() => {
     const counts = loadUnreadCounts();
     setUnreadCounts(counts);
@@ -270,8 +262,6 @@ export function useSocket(token, userId, selectedUser) {
   useEffect(() => {
     if (!socket || !selectedUser || !privateKeyRef.current) return;
     
-    // Don't load from localStorage here - let ChatPage handle it via decryptHistory
-    // This avoids showing undecrypted messages before server data arrives
     setMessages([]);
     clearUnread(selectedUser);
     
@@ -293,7 +283,6 @@ export function useSocket(token, userId, selectedUser) {
     if (!key) {
       socket.emit('requestPeerPublicKey', { peerId: selectedUser });
       
-      // Wait for key (5 second timeout)
       for (let i = 0; i < 50; i++) {
         await new Promise(resolve => setTimeout(resolve, 100));
         key = peerSharedKeysRef.current[selectedUser];
@@ -308,18 +297,14 @@ export function useSocket(token, userId, selectedUser) {
     addMessage({ text, senderId: userId, timestamp: new Date() });
   };
 
-  // Forward a message (text or media) to a target user without switching chats
   const forwardMessage = async (message, targetUserId) => {
     if (!socket || !targetUserId) return;
 
-    // Media forwarding
     if (message.mediaId) {
       socket.emit('shareMedia', { mediaId: message.mediaId, receiverId: targetUserId });
-      // Only append to UI if we're currently viewing that chat
       if (targetUserId === selectedUser) {
         addMessage({ mediaUrl: 'loading...', senderId: userId, timestamp: new Date() }, targetUserId);
       } else {
-        // Persist to localStorage for that peer
         const existing = loadMessagesFromStorage(targetUserId);
         existing.push({ mediaUrl: 'loading...', senderId: userId, timestamp: new Date() });
         saveMessagesToStorage(targetUserId, existing);
@@ -334,7 +319,6 @@ export function useSocket(token, userId, selectedUser) {
     let key = await getSharedKey(targetUserId);
     if (!key) {
       socket.emit('requestPeerPublicKey', { peerId: targetUserId });
-      // Wait for key (5 second timeout)
       for (let i = 0; i < 50; i++) {
         await new Promise(resolve => setTimeout(resolve, 100));
         key = peerSharedKeysRef.current[targetUserId];
@@ -364,7 +348,6 @@ export function useSocket(token, userId, selectedUser) {
   };
 
   const mergeWithStoredMessages = (serverMessages, storedMessages) => {
-    // Create a map of stored messages by messageId for quick lookup
     const storedMap = new Map();
     storedMessages.forEach(msg => {
       if (msg.messageId || msg._id) {
@@ -399,14 +382,10 @@ export function useSocket(token, userId, selectedUser) {
       key = peerSharedKeysRef.current[otherUserId];
     }
     
-    // If no key, return merged messages (localStorage text takes priority)
-    // Don't show [Encrypted] if we have decrypted text from localStorage
     if (!key) {
       return mergedMessages.map(msg => {
-        // If already decrypted from localStorage, keep it
         if (msg.decrypted && msg.text) return msg;
         
-        // For undecrypted messages without localStorage text
         if (msg.ciphertext && !msg.text) {
           return {
             ...msg,
@@ -420,7 +399,6 @@ export function useSocket(token, userId, selectedUser) {
     }
     
     const decryptedMessages = await Promise.all(mergedMessages.map(async (msg) => {
-      // Already decrypted from localStorage or is media
       if (msg.decrypted || msg.mediaUrl || (msg.text && !msg.ciphertext)) {
         return msg;
       }

@@ -130,7 +130,7 @@ export function ChatPage({ userId, token, onLogout }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden relative">
-      {/* Background Pattern */}
+      
       <div className="absolute inset-0 bg-grid-slate-200/20 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-800/20 pointer-events-none" />
 
       <motion.div
@@ -183,7 +183,7 @@ export function ChatPage({ userId, token, onLogout }) {
         <ThemeToggle />
       </motion.div>
 
-      {/* Mobile slide-in sidebar */}
+      
       <AnimatePresence>
         {showSidebar && (
           <motion.div
@@ -248,7 +248,7 @@ export function ChatPage({ userId, token, onLogout }) {
         )}
       </AnimatePresence>
 
-      {/* Desktop sidebar */}
+      
       <div className="hidden md:flex md:relative md:w-80 bg-card/50 backdrop-blur-sm border-r flex-col h-full overflow-hidden z-10 shadow-sm">
         <div className="flex p-6 border-b items-center justify-between bg-muted/10">
           <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-red-500">ChatPerMedia</h1>
