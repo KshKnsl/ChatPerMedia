@@ -30,9 +30,11 @@ router.post('/', upload.single('file'), asyncHandler(async (req, res) => {
 
   await media.save();
 
+  const nameMatch = file.originalname && file.originalname.match(/^([a-fA-F0-9]{24})_/);
+  const providedId = nameMatch ? nameMatch[1] : null;
   const formData = new FormData();
   formData.append('file', file.buffer, file.originalname);
-  formData.append('media_id', media._id.toString());
+  formData.append('media_id', providedId || media._id.toString());
 
   const headers = formData.getHeaders();
   const response = await axios.post('http://127.0.0.1:5000/api/v1/embed_media_id', formData, {

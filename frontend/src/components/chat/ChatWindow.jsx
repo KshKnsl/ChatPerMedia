@@ -3,10 +3,12 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Paperclip, Send, Loader2, Lock, Forward } from 'lucide-react';
 import { MediaViewerDialog } from './MediaViewerDialog';
 import { ForwardMessageDialog } from './ForwardMessageDialog';
 import { api, uploadFile } from '@/utils/api';
+import { API_BASE_URL } from '@/config';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadMedia, token, onLogout, users, onForwardMessage, selectedUser }) {
@@ -100,21 +102,18 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
     if (msg.mediaUrl === 'loading...') return <div className="p-4 text-center">Uploading...</div>;
 
     const mediaType = getMediaType(msg);
-    const mediaData = { type: mediaType, url: msg.mediaUrl, sender: userMap[msg.senderId], mediaId: msg.mediaId };
+    const mediaData = { type: mediaType, url: `${API_BASE_URL}${msg.mediaUrl}`, sender: userMap[msg.senderId], mediaId: msg.mediaId };
     const MediaTag = mediaType === 'video' ? 'video' : 'img';
 
     return (
       <div className="cursor-pointer" onClick={() => handleMediaClick(mediaData)}>
         <MediaTag
-          src={msg.mediaUrl}
+          src={`${API_BASE_URL}${msg.mediaUrl}`}
           alt={mediaType === 'image' ? 'shared media' : undefined}
           className="max-w-full rounded-lg"
           onContextMenu={(e) => e.preventDefault()}
           onDragStart={(e) => e.preventDefault()}
         />
-        <div className="absolute inset-0 bg-white bg-opacity-30 flex items-center justify-center pointer-events-none text-xl font-bold text-red-600">
-          {userMap[msg.senderId] || 'Unknown'}
-        </div>
       </div>
     );
   };
@@ -169,7 +168,7 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
                       <div className="flex flex-col gap-1">
                         <motion.div
                           className={`px-4 py-2 md:py-3 shadow-sm text-sm md:text-base relative ${isOwn
-                              ? 'bg-gradient-to-br from-primary to-indigo-600 text-primary-foreground rounded-2xl rounded-tr-sm'
+                              ? 'bg-gradient-to-br from-primary to-red-600 text-primary-foreground rounded-2xl rounded-tr-sm'
                               : 'bg-card border text-card-foreground rounded-2xl rounded-tl-sm'
                             }`}
                           onContextMenu={(e) => e.preventDefault()}

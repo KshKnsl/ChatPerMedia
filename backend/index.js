@@ -43,6 +43,17 @@ app.get("/media/*", async (req, res) => {
   try {
     const mediaPath = req.path;
     const microserviceUrl = `http://127.0.0.1:5000${mediaPath}`;
+    if (req.query && req.query.download) {
+      try {
+        const basename = require('path').basename(mediaPath);
+        const mediaDoc = await Media.findOne({ filePath: { $regex: `${basename}$` } });
+        if (mediaDoc) {
+          res.setHeader('Content-Disposition', `attachment; filename="${mediaDoc._id}_${basename}"`);
+        }
+      } catch (e) {
+        console.error('[PROXY] Error setting download filename header:', e.message);
+      }
+    }
     const response = await axios.get(microserviceUrl, {
       responseType: "stream",
     });
@@ -107,33 +118,6 @@ app.get("/api/media/:id/provenance", authenticateToken, asyncHandler(async (req,
   });
 }));
 
-app.post("/api/media/extract", authenticateToken, asyncHandler(async (req, res) => {
-  const { file_path } = req.body;
-  if (!file_path) return res.status(400).json({ error: "file_path is required" });
-
-  console.log(`[API] Requesting media ID extraction for: ${file_path}`);
-  const response = await axios.post("http://127.0.0.1:5000/api/v1/extract_media_id", { file_path });
-  console.log(`[API] Extraction result:`, response.data);
-
-  if (response.data.status === 'success' && response.data.media_id) {
-    const media = await Media.findById(response.data.media_id).populate("creatorId", "username email");
-    if (media) {
-      sendSuccess(res, {
-        status: 'success',
-        media_id: response.data.media_id,
-        creator: {
-          username: media.creatorId.username,
-          email: media.creatorId.email
-        },
-        createdAt: media.createdAt
-      });
-    } else {
-      sendSuccess(res, response.data);
-    }
-  } else {
-    sendSuccess(res, response.data);
-  }
-}));
 
 app.get("/api/messages/:otherUserId", authenticateToken, asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -295,12 +279,7 @@ io.on("connection", (socket) => {
       await media.save();
       console.log(`[SOCKET] Recipient added to distribution path: ${receiverId}`);
 
-      let mediaUrl = media.filePath;
-      if (mediaUrl.startsWith('media/')) {
-        mediaUrl = `/${mediaUrl}`;
-      } else if (!mediaUrl.startsWith('/')) {
-        mediaUrl = `/media/master/${mediaUrl.split('/').pop()}`;
-      }
+      let mediaUrl = `/media/master/${path.basename(media.filePath)}`;
 
       const message = new Message({
         senderId: socket.userId,

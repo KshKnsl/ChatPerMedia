@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { UserList } from './UserList';
 import { ChatHeader } from './ChatHeader';
 import { ChatWindow } from './ChatWindow';
@@ -174,7 +173,7 @@ export function ChatPage({ userId, token, onLogout }) {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500"
+                className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-red-500"
               >
                 ChatPerMedia
               </motion.h1>
@@ -195,7 +194,7 @@ export function ChatPage({ userId, token, onLogout }) {
             className="fixed inset-y-0 left-0 z-40 w-80 bg-card/95 backdrop-blur-xl border-r shadow-2xl flex-col h-full overflow-hidden md:hidden"
           >
             <div className="p-6 border-b items-center justify-between flex bg-muted/30">
-              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">ChatPerMedia</h1>
+              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-red-500">ChatPerMedia</h1>
               <div className="flex gap-2">
                 <motion.div whileTap={{ scale: 0.9 }}>
                   <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh" className="hover:bg-primary/10">
@@ -252,7 +251,7 @@ export function ChatPage({ userId, token, onLogout }) {
       {/* Desktop sidebar */}
       <div className="hidden md:flex md:relative md:w-80 bg-card/50 backdrop-blur-sm border-r flex-col h-full overflow-hidden z-10 shadow-sm">
         <div className="flex p-6 border-b items-center justify-between bg-muted/10">
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">ChatPerMedia</h1>
+          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-red-500">ChatPerMedia</h1>
           <div className="flex gap-2">
             <motion.div whileTap={{ scale: 0.9 }}>
               <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={refreshing} title="Refresh" className="hover:bg-primary/10">

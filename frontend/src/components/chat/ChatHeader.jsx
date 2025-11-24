@@ -43,10 +43,6 @@ export function ChatHeader({ selectedUserName, selectedUserAvatar, onMenuClick, 
         transition={{ delay: 0.1 }}
       >
         <div className="font-bold text-foreground text-sm md:text-base tracking-tight">{selectedUserName}</div>
-        <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-          Online
-        </div>
       </motion.div>
       {onDeleteChat && (
         <motion.div

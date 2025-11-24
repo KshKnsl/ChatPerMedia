@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os
 import logging
+import shutil
 from werkzeug.utils import secure_filename
-from utils.video_marker import embed_media_id as video_embed, extract_media_id as extract_video
-from utils.image_marker import embed_media_id as image_embed, extract_media_id as extract_image
+from utils.marker import embed_media_id as embed_media_id_util, extract_media_id as extract_media_id_util
 
 app = Flask(__name__)
 
@@ -19,19 +19,31 @@ def log_response(response):
     logger.info(f"{request.method} {request.path} - Status: {response.status_code}")
     return response
 
-UPLOAD_FOLDER = 'uploads'
-MASTER_FOLDER = 'media/master'
-SHARED_FOLDER = 'media/shared'
+SERVICE_ROOT = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(SERVICE_ROOT, 'uploads')
+MEDIA_ROOT = os.path.join(SERVICE_ROOT, 'media')
+MASTER_FOLDER = os.path.join(MEDIA_ROOT, 'master')
+SHARED_FOLDER = os.path.join(MEDIA_ROOT, 'shared')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 os.makedirs(MASTER_FOLDER, exist_ok=True)
 os.makedirs(SHARED_FOLDER, exist_ok=True)
 
 @app.route('/media/<path:filename>')
 def serve_media(filename):
-    return send_from_directory('media', filename)
+    return send_from_directory(MEDIA_ROOT, filename)
+
+
+@app.route('/internal/list_master', methods=['GET'])
+def list_master_files():
+    try:
+        files = os.listdir(MASTER_FOLDER)
+        return jsonify({'files': files})
+    except Exception as e:
+        logger.error(f"Error listing master files: {e}")
+        return jsonify({'error': str(e)}), 500
 
 def get_marker_functions(file_type):
-    """Get embedding and extraction functions based on file type"""
     if file_type.startswith('video'):
         return video_embed, extract_video
     elif file_type.startswith('image'):
@@ -50,7 +62,6 @@ def detect_file_type(filename):
 
 @app.route('/api/v1/embed_media_id', methods=['POST'])
 def embed_media_id():
-    """Embed media ID into uploaded file using steganography"""
     try:
         logger.info(f"Embed media ID request received")
         file = request.files['file']
@@ -65,15 +76,35 @@ def embed_media_id():
             logger.error(f"Unsupported file type: {filename}")
             return jsonify({'status': 'error', 'message': 'Unsupported file type'})
 
-        embed_func, _ = get_marker_functions(file_type)
-
-        # Create output path with media ID embedded
         output_path = os.path.join(MASTER_FOLDER, f'{media_id}_{filename}')
-        logger.info(f"Embedding media ID: {output_path}")
-        embed_func(upload_path, media_id, output_path)
+        try:
+            embed_media_id_util(upload_path, media_id, output_path)
+            logger.info(f"Media ID embedding completed: {output_path}")
+        except Exception:
+            import traceback as _tb
+            logger.error(f"Embedding exception traceback:\n{_tb.format_exc()}")
+            try:
+                shutil.copy(upload_path, output_path)
+                logger.info(f"File copied as fallback: {output_path}")
+            except Exception as copy_err:
+                import traceback as _tb2
+                logger.error(f"Fallback copy failed: {copy_err}. Traceback:\n{_tb2.format_exc()}")
+                try:
+                    os.remove(upload_path)
+                except Exception:
+                    pass
+                return jsonify({'status': 'error', 'message': 'Failed to process media file'}), 500
 
-        os.remove(upload_path)
-        logger.info(f"Media ID embedding completed: {output_path}")
+        try:
+            os.remove(upload_path)
+        except Exception:
+            logger.warning(f"Could not remove temporary upload: {upload_path}")
+
+        abs_output = os.path.abspath(output_path)
+        logger.info(f"Checking existence of output file: {abs_output}")
+        if not os.path.exists(abs_output):
+            logger.error(f"Expected output file does not exist: {abs_output}")
+            return jsonify({'status': 'error', 'message': 'Output file not found on server', 'path': abs_output}), 500
 
         return jsonify({
             'status': 'success', 
@@ -84,33 +115,6 @@ def embed_media_id():
         import traceback
         logger.error(f"Error in embed_media_id: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/v1/extract_media_id', methods=['POST'])
-def extract_media_id_endpoint():
-    """Extract media ID from file using steganography"""
-    try:
-        data = request.json
-        logger.info(f"Extract media ID request: {data}")
-        file_path = data['file_path']
-        
-        # Handle relative paths
-        if not file_path.startswith('/'):
-            file_path = os.path.join(os.getcwd(), file_path)
-        
-        filename = os.path.basename(file_path)
-        file_type = detect_file_type(filename)
-        if file_type == 'unknown':
-            logger.error(f"Unsupported file type for extraction: {filename}")
-            return jsonify({'status': 'error', 'message': 'Unsupported file type'})
-
-        _, extract_func = get_marker_functions(file_type)
-        logger.info(f"Extracting media ID from: {file_path}")
-        result = extract_func(file_path)
-        logger.info(f"Extraction result: {result}")
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Error in extract_media_id: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':

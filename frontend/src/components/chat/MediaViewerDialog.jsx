@@ -1,19 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Shield, Info, UserSearch, X, Download } from 'lucide-react';
-import { MICROSERVICE_URL } from '@/config';
-import { api } from '@/utils/api';
+import { Shield, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Download } from 'lucide-react';
 
-export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenance, loadingProvenance, onFetchProvenance, token }) {
-  const [extraction, setExtraction] = useState(null);
-  const [loadingExtraction, setLoadingExtraction] = useState(false);
-
-  useEffect(() => {
-    api.setToken(token);
-  }, [token]);
-
+export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenance, loadingProvenance, onFetchProvenance }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!open) return;
@@ -26,11 +18,6 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
         e.preventDefault();
         onFetchProvenance?.();
       }
-
-      if (e.key === 'e' || e.key === 'E') {
-        e.preventDefault();
-        handleExtract();
-      }
     };
 
     if (open) {
@@ -39,30 +26,8 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
     }
   }, [open, onOpenChange, onFetchProvenance]);
 
-  const handleExtract = async () => {
-    if (!selectedMedia?.url) return;
-
-    let filePath = selectedMedia.url.replace(MICROSERVICE_URL, '');
-    if (filePath.startsWith('/')) {
-      filePath = '.' + filePath;
-    }
-
-    const { data } = await api.postWithLoading('/media/extract',
-      { file_path: filePath },
-      setLoadingExtraction,
-      {
-        successMessage: 'Watermark extracted successfully',
-        errorMessage: 'Failed to extract watermark'
-      }
-    );
-    if (data) setExtraction(data);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) setExtraction(null);
-      onOpenChange(isOpen);
-    }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl w-[95vw] p-0 overflow-hidden bg-black/95 border-white/10 shadow-2xl backdrop-blur-xl">
         <DialogTitle className="sr-only">Media Viewer</DialogTitle>
         <DialogDescription className="sr-only">View shared media with provenance information</DialogDescription>
@@ -78,16 +43,6 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                   className="flex gap-2"
                 >
                   <Button
-                    onClick={handleExtract}
-                    disabled={loadingExtraction}
-                    size="sm"
-                    variant="secondary"
-                    className="bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md transition-all"
-                    title="Extract Watermark (Press E)"
-                  >
-                    {loadingExtraction ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserSearch className="h-4 w-4 mr-2" />Extract</>}
-                  </Button>
-                  <Button
                     onClick={() => onFetchProvenance(selectedMedia.mediaId)}
                     disabled={loadingProvenance}
                     size="sm"
@@ -95,7 +50,42 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                     className="bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md transition-all"
                     title="Check Provenance (Press P)"
                   >
-                    {loadingProvenance ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Shield className="h-4 w-4 mr-2" />Provenance</>}
+                    {loadingProvenance ? <span className="h-4 w-4 animate-spin" /> : <><Shield className="h-4 w-4 mr-2" />Provenance</>}
+                  </Button>
+                </motion.div>
+              )}
+              {selectedMedia?.url && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-2"
+                >
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(selectedMedia.url);
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        const extMatch = (selectedMedia.url || '').split('?')[0].split('.').pop();
+                        const ext = extMatch && extMatch.length <= 6 ? extMatch : 'bin';
+                        const name = `${selectedMedia.mediaId || 'media'}.${ext}`;
+                        a.href = url;
+                        a.download = name;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                      } catch (e) {
+                        console.error('Download failed', e);
+                      }
+                    }}
+                    size="sm"
+                    variant="ghost"
+                    className="bg-white/5 text-white border border-white/10 backdrop-blur-md transition-all"
+                    title="Download media"
+                  >
+                    <Download className="h-4 w-4 mr-2" />Download
                   </Button>
                 </motion.div>
               )}
@@ -135,18 +125,13 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                     onDragStart={(e) => e.preventDefault()}
                   />
                 )}
-                {selectedMedia.sender && (
-                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-white/90 font-medium">
-                    Sent by {selectedMedia.sender}
-                  </div>
-                )}
               </motion.div>
             )}
           </div>
 
           {/* Info Panel (Provenance/Extraction) */}
           <AnimatePresence>
-            {(provenance || extraction) && (
+            {provenance && (
               <motion.div
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -154,29 +139,6 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                 className="bg-zinc-900/95 backdrop-blur-xl border-t border-white/10 p-6 max-h-[35vh] overflow-y-auto"
               >
                 <div className="max-w-3xl mx-auto space-y-6">
-                  {extraction && (
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-lg flex items-center gap-2 text-white">
-                        <UserSearch className="h-5 w-5 text-blue-400" />
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
-                          Extracted Metadata
-                        </span>
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl border border-white/5">
-                        <div className="space-y-1">
-                          <div className="text-xs text-white/50 uppercase tracking-wider font-semibold">Media ID</div>
-                          <div className="font-mono text-sm text-blue-300 break-all">{extraction.media_id || 'Not found'}</div>
-                        </div>
-                        {extraction.creator && (
-                          <div className="space-y-1">
-                            <div className="text-xs text-white/50 uppercase tracking-wider font-semibold">Original Creator</div>
-                            <div className="text-sm text-white/90">{extraction.creator.username}</div>
-                            <div className="text-xs text-white/50">{extraction.creator.email}</div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
 
                   {provenance && (
                     <div className="space-y-3">

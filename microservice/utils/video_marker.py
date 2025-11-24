@@ -1,6 +1,4 @@
 import cv2
-import os
-import numpy as np
 
 def text_to_bits(text):
     """Convert text to binary string"""
@@ -12,13 +10,12 @@ def bits_to_text(bits):
     return ''.join(chr(int(c, 2)) for c in chars if len(c) == 8 and int(c, 2) != 0)
 
 def embed_bits_in_frame(frame, bits):
-    """Embed bits into video frame using LSB steganography"""
     h, w, _ = frame.shape
     bit_idx = 0
     
     for i in range(h):
         for j in range(w):
-            for k in range(3):  # RGB channels
+            for k in range(3):
                 if bit_idx < len(bits):
                     frame[i, j, k] = (frame[i, j, k] & ~1) | int(bits[bit_idx])
                     bit_idx += 1
@@ -26,31 +23,34 @@ def embed_bits_in_frame(frame, bits):
                     return frame
     return frame
 
-def extract_bits_from_frame(frame, num_bits):
-    """Extract bits from video frame using LSB steganography"""
+def extract_bits_from_frame(frame, num_bits, start_bit=0):
     h, w, _ = frame.shape
     bits = ''
     bit_idx = 0
-    
+    target_end = start_bit + num_bits
+
     for i in range(h):
         for j in range(w):
-            for k in range(3): 
-                if bit_idx < num_bits:
-                    bits += str(frame[i, j, k] & 1)
-                    bit_idx += 1
-                else:
+            for k in range(3):
+                if bit_idx >= target_end:
                     return bits
+                if bit_idx >= start_bit and bit_idx < target_end:
+                    bits += str(int(frame[i, j, k]) & 1)
+                bit_idx += 1
     return bits
 
+extract_bits_from_frame_with_offset = extract_bits_from_frame
+
 def embed_media_id(video_path, media_id, output_path):
-    """Embed media ID into video file using steganography"""
     cap = cv2.VideoCapture(video_path)
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     fps = cap.get(cv2.CAP_PROP_FPS)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-    bits = text_to_bits(media_id + '|END|')
+    length = len(media_id)
+    header_bits = format(length, '032b')
+    bits = header_bits + text_to_bits(media_id)
     embedded = False
     
     while cap.isOpened():
@@ -68,7 +68,6 @@ def embed_media_id(video_path, media_id, output_path):
     out.release()
 
 def extract_media_id(video_path):
-    """Extract embedded media ID from video file"""
     cap = cv2.VideoCapture(video_path)
     ret, frame = cap.read()
     cap.release()
@@ -76,11 +75,21 @@ def extract_media_id(video_path):
     if not ret:
         return {'status': 'error', 'message': 'Could not read video file'}
     
-    bits = extract_bits_from_frame(frame, 500 * 8) 
+    header_bits = extract_bits_from_frame_with_offset(frame, 32, 0)
+    if len(header_bits) >= 32:
+        try:
+            length = int(header_bits, 2)
+            if 0 < length <= 1000:
+                id_bits = extract_bits_from_frame_with_offset(frame, length * 8, 32)
+                if len(id_bits) >= length * 8:
+                    extracted_text = bits_to_text(id_bits)
+                    return {'status': 'success', 'media_id': extracted_text}
+        except Exception:
+            pass
+
+    bits = extract_bits_from_frame(frame, 500 * 8)
     extracted_text = bits_to_text(bits)
-    
     if '|END|' in extracted_text:
         media_id = extracted_text.split('|END|')[0].strip()
         return {'status': 'success', 'media_id': media_id}
-    else:
-        return {'status': 'error', 'message': 'No media ID found'}
+    return {'status': 'error', 'message': 'No media ID found'}

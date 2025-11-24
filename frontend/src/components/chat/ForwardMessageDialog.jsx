@@ -30,7 +30,7 @@ export function ForwardMessageDialog({ open, onOpenChange, users, userId, select
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl">
-        <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">Forward Message</DialogTitle>
+        <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-red-500">Forward Message</DialogTitle>
         <DialogDescription className="text-sm text-muted-foreground mb-2">
           Select a user to forward this message to.
         </DialogDescription>
