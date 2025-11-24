@@ -4,6 +4,7 @@ import logging
 import shutil
 from werkzeug.utils import secure_filename
 from utils.marker import embed_media_id as embed_media_id_util, extract_media_id as extract_media_id_util
+import re
 
 app = Flask(__name__)
 
@@ -76,7 +77,10 @@ def embed_media_id():
             logger.error(f"Unsupported file type: {filename}")
             return jsonify({'status': 'error', 'message': 'Unsupported file type'})
 
-        output_path = os.path.join(MASTER_FOLDER, f'{media_id}_{filename}')
+        m = re.match(r'^(?:[a-fA-F0-9]{24}_)+(.+)$', filename)
+        basename = m.group(1) if m else filename
+        output_name = f'{media_id}_{basename}'
+        output_path = os.path.join(MASTER_FOLDER, output_name)
         try:
             embed_media_id_util(upload_path, media_id, output_path)
             logger.info(f"Media ID embedding completed: {output_path}")
@@ -114,6 +118,39 @@ def embed_media_id():
     except Exception as e:
         import traceback
         logger.error(f"Error in embed_media_id: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/v1/extract_media_id', methods=['POST'])
+def extract_media_id():
+    try:
+        logger.info(f"Extract media ID request received")
+        file = request.files.get('file')
+        if not file:
+            return jsonify({'status': 'error', 'message': 'No file provided'}), 400
+
+        filename = secure_filename(file.filename)
+        upload_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(upload_path)
+        logger.info(f"File saved for extraction: {filename}")
+
+        try:
+            result = extract_media_id_util(upload_path)
+            logger.info(f"Extraction result: {result}")
+        except Exception as ex:
+            logger.error(f"Extraction failed: {ex}")
+            result = {'status': 'error', 'message': 'Extraction failed'}
+
+        try:
+            os.remove(upload_path)
+        except Exception:
+            pass
+
+        return jsonify(result)
+    except Exception as e:
+        import traceback
+        logger.error(f"Error in extract_media_id: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 

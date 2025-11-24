@@ -31,7 +31,26 @@ router.post('/', upload.single('file'), asyncHandler(async (req, res) => {
   await media.save();
 
   const nameMatch = file.originalname && file.originalname.match(/^([a-fA-F0-9]{24})_/);
-  const providedId = nameMatch ? nameMatch[1] : null;
+  let providedId = nameMatch ? nameMatch[1] : null;
+
+  if (!providedId) {
+    try {
+      const detectForm = new FormData();
+      detectForm.append('file', file.buffer, file.originalname);
+      const detectHeaders = detectForm.getHeaders();
+      const detectRes = await axios.post('http://127.0.0.1:5000/api/v1/extract_media_id', detectForm, {
+        headers: detectHeaders,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        timeout: 120000
+      });
+      if (detectRes.data && detectRes.data.status === 'success' && detectRes.data.media_id) {
+        providedId = detectRes.data.media_id;
+      }
+    } catch (e) {
+      console.warn('[UPLOAD] Extraction attempt failed or microservice not reachable:', e.message);
+    }
+  }
   const formData = new FormData();
   formData.append('file', file.buffer, file.originalname);
   formData.append('media_id', providedId || media._id.toString());

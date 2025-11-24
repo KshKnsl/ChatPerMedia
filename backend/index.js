@@ -17,10 +17,13 @@ const User = require("./models/ChatUser");
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = process.env.FRONTEND_ORIGINS ? process.env.FRONTEND_ORIGINS.split(',') : null;
+
+const corsOriginValue = allowedOrigins || true;
+
 const io = socketIo(server, {
   cors: {
-    origin:
-      process.env.NODE_ENV === "production" ? true : "http://localhost:5173",
+    origin: corsOriginValue,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -28,8 +31,7 @@ const io = socketIo(server, {
 
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production" ? true : "http://localhost:5173",
+    origin: corsOriginValue,
     credentials: true,
   })
 );
@@ -57,6 +59,8 @@ app.get("/media/*", async (req, res) => {
     const response = await axios.get(microserviceUrl, {
       responseType: "stream",
     });
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     const contentType = response.headers["content-type"];
     if (contentType) res.setHeader("Content-Type", contentType);
     const contentLength = response.headers["content-length"];
@@ -173,12 +177,22 @@ const crypto = require("crypto");
 const userPublicKeys = new Map();
 
 io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  if (!token) return next(new Error("Authentication error"));
+  const token = socket.handshake && socket.handshake.auth && socket.handshake.auth.token;
+  const remote = (socket.handshake && (socket.handshake.address || socket.handshake.headers && socket.handshake.headers['x-forwarded-for'])) || socket.conn && socket.conn.remoteAddress || 'unknown';
+  console.log(`[SOCKET AUTH] Connection attempt from ${remote} - token present: ${!!token}`);
+  if (!token) {
+    console.warn(`[SOCKET AUTH] Missing token from ${remote}`);
+    return next(new Error('Authentication error: missing token'));
+  }
 
-  jwt.verify(token, "secretKey", (err, user) => {
-    if (err) return next(new Error("Authentication error"));
+  const jwtSecret = process.env.JWT_SECRET || 'secretKey';
+  jwt.verify(token, jwtSecret, (err, user) => {
+    if (err) {
+      console.warn(`[SOCKET AUTH] Token verification failed for ${remote}: ${err.message}`);
+      return next(new Error('Authentication error: invalid token'));
+    }
     socket.userId = user.userId;
+    console.log(`[SOCKET AUTH] Authenticated socket for user ${socket.userId} from ${remote}`);
     next();
   });
 });

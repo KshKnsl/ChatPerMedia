@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
+import { toast } from 'sonner';
 import { generateDHKeys, computeSharedKey, encryptMessage, decryptMessage, exportPrivateKeyJwk, importPrivateKeyJwk } from '@/utils/crypto';
 import { SOCKET_URL } from '@/config';
 
@@ -14,6 +15,7 @@ export function useSocket(token, userId, selectedUser) {
   const peerSharedKeysRef = useRef({}); 
   const pendingMessagesRef = useRef({});
   const processedMessageIds = useRef(new Set());
+  const connectErrorShownRef = useRef(false);
 
   const getStorageKey = (peerId) => `chat_${userId}_${peerId}`;
   const getUnreadKey = () => `unread_${userId}`;
@@ -117,6 +119,25 @@ export function useSocket(token, userId, selectedUser) {
     const initSocket = async () => {
       const newSocket = io(SOCKET_URL, { auth: { token } });
       setSocket(newSocket);
+
+      newSocket.on('connect', () => {
+        console.log('[CLIENT] socket connected:', newSocket.id);
+        connectErrorShownRef.current = false;
+      });
+      newSocket.on('connect_error', (err) => {
+        const msg = err && (err.message || String(err)) || 'Connection error';
+        console.error('[CLIENT] socket connect_error:', msg);
+        if (!connectErrorShownRef.current) {
+          toast.error('Unable to establish a secure connection — please try again');
+          connectErrorShownRef.current = true;
+        }
+      });
+      newSocket.on('disconnect', (reason) => {
+        console.warn('[CLIENT] socket disconnected:', reason);
+        if (reason && reason !== 'io client disconnect') {
+          toast.warning(`Socket disconnected: ${reason}`);
+        }
+      });
 
       // Load or generate persistent ECDH keypair
       let privateKey;

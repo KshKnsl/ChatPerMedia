@@ -67,9 +67,10 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                         const blob = await res.blob();
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
-                        const extMatch = (selectedMedia.url || '').split('?')[0].split('.').pop();
-                        const ext = extMatch && extMatch.length <= 6 ? extMatch : 'bin';
-                        const name = `${selectedMedia.mediaId || 'media'}.${ext}`;
+                        const urlPath = (selectedMedia.url || '').split('?')[0];
+                        const parts = urlPath.split('/');
+                        const origName = parts.pop() || 'media.bin';
+                        const name = `${selectedMedia.mediaId || 'media'}_${origName}`;
                         a.href = url;
                         a.download = name;
                         document.body.appendChild(a);
