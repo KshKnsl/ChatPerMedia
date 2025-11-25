@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, User, MessageSquare } from 'lucide-react';
+import { Upload, User, MessageSquare, Download } from 'lucide-react';
 import { uploadFile } from '@/utils/api';
 import { API_BASE_URL } from '@/config';
 import axios from 'axios';
@@ -16,6 +16,41 @@ export function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
   const [avatar, setAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setIsInstallable(false);
+      toast.success('App installed successfully!');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setIsInstallable(false);
+      }
+    }
+  };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -200,6 +235,23 @@ export function LoginPage({ onLogin }) {
                 </Button>
               </motion.div>
             </form>
+            {isInstallable && (
+              <motion.div
+                className="pt-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Button
+                  onClick={handleInstall}
+                  variant="outline"
+                  className="w-full h-11 text-base font-medium border-primary/20 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download App
+                </Button>
+              </motion.div>
+            )}
             <div className="text-center mt-8">
               <p className="text-sm text-muted-foreground">
                 {isRegister ? 'Already have an account?' : "Don't have an account?"}
