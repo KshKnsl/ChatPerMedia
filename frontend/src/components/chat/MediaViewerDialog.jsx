@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Shield, X } from 'lucide-react';
+import { Shield, X, Forward } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download } from 'lucide-react';
 
-export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenance, loadingProvenance, onFetchProvenance }) {
+export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenance, loadingProvenance, onFetchProvenance, onRequestForward }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!open) return;
@@ -25,6 +25,15 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
   }, [open, onOpenChange, onFetchProvenance]);
+
+  const filteredDistributionPath = (provenance?.distributionPath || []).filter((entry) => {
+    if (!selectedMedia?.timestamp) return true;
+    try {
+      return new Date(entry.sharedAt) <= new Date(selectedMedia.timestamp);
+    } catch (e) {
+      return true;
+    }
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,6 +95,29 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                     title="Download media"
                   >
                     <Download className="h-4 w-4 mr-2" />Download
+                  </Button>
+                </motion.div>
+              )}
+              {selectedMedia && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-2"
+                >
+                  <Button
+                    onClick={() => {
+                      try {
+                        onRequestForward?.(selectedMedia);
+                      } catch (e) {
+                        console.error('Forward request failed', e);
+                      }
+                    }}
+                    size="sm"
+                    variant="ghost"
+                    className="bg-white/5 text-white border border-white/10 backdrop-blur-md transition-all"
+                    title="Forward media"
+                  >
+                    <Forward className="h-4 w-4 mr-2" />Forward
                   </Button>
                 </motion.div>
               )}
@@ -160,12 +192,12 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                           </div>
                         </div>
 
-                        {provenance.distributionPath?.length > 0 ? (
+                        {filteredDistributionPath.length > 0 ? (
                           <div className="p-4 bg-black/20 space-y-4">
                             <div className="text-xs font-medium text-white/40 uppercase tracking-wider">Distribution Path</div>
                             <div className="space-y-0 relative">
                               <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-white/10"></div>
-                              {provenance.distributionPath.map((entry, idx) => (
+                              {filteredDistributionPath.map((entry, idx) => (
                                 <div key={idx} className="relative pl-6 py-2">
                                   <div className="absolute left-[5px] top-3.5 w-2 h-2 rounded-full bg-primary ring-4 ring-black"></div>
                                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm">

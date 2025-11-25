@@ -102,7 +102,7 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
     if (msg.mediaUrl === 'loading...') return <div className="p-4 text-center">Uploading...</div>;
 
     const mediaType = getMediaType(msg);
-    const mediaData = { type: mediaType, url: `${API_BASE_URL}${msg.mediaUrl}`, sender: userMap[msg.senderId], mediaId: msg.mediaId };
+    const mediaData = { type: mediaType, url: `${API_BASE_URL}${msg.mediaUrl}`, sender: userMap[msg.senderId], mediaId: msg.mediaId, timestamp: msg.timestamp || msg.createdAt };
     const MediaTag = mediaType === 'video' ? 'video' : 'img';
 
     return (
@@ -303,6 +303,7 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
         loadingProvenance={loadingProvenance}
         onFetchProvenance={fetchProvenance}
         token={token}
+        onRequestForward={handleForwardClick}
       />
 
       <ForwardMessageDialog
