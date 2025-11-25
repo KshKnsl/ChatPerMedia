@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Shield, X, Forward } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenance, loadingProvenance, onFetchProvenance, onRequestForward }) {
   useEffect(() => {
