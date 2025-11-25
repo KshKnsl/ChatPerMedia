@@ -107,7 +107,6 @@ export function ChatPage({ userId, token, onLogout }) {
       await forwardMessage(message, targetUserId);
       toast.success('Message forwarded');
     } catch (err) {
-      console.error(err);
       toast.error('Failed to forward: ' + (err.message || 'Unknown error'));
     }
   };

@@ -48,7 +48,6 @@ router.post('/', upload.single('file'), asyncHandler(async (req, res) => {
         providedId = detectRes.data.media_id;
       }
     } catch (e) {
-      console.warn('[UPLOAD] Extraction attempt failed or microservice not reachable:', e.message);
     }
   }
   const formData = new FormData();

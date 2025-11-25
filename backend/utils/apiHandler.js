@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 
 const handleError = (res, error, customMessage = null) => {
-  console.error('[API Error]:', error);
   const statusCode = error.statusCode || error.response?.status || 500;
   const message = customMessage || error.response?.data?.error || error.message || 'Internal server error';
   return res.status(statusCode).json({ error: message });
@@ -56,7 +55,6 @@ const dbQuery = async (operation, errorMessage = 'Database operation failed') =>
   try {
     return await operation();
   } catch (error) {
-    console.error('[DB Error]:', error);
     const dbError = new Error(errorMessage);
     dbError.statusCode = 500;
     throw dbError;

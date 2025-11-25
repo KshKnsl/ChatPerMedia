@@ -17,22 +17,20 @@ const User = require("./models/ChatUser");
 
 const app = express();
 const server = http.createServer(app);
-const allowedOrigins = process.env.FRONTEND_ORIGINS ? process.env.FRONTEND_ORIGINS.split(',') : null;
-
-const corsOriginValue = allowedOrigins || true;
+const corsOriginValue = '*';
 
 const io = socketIo(server, {
   cors: {
     origin: corsOriginValue,
     methods: ["GET", "POST"],
-    credentials: true,
+    credentials: false,
   },
 });
 
 app.use(
   cors({
     origin: corsOriginValue,
-    credentials: true,
+    credentials: false,
   })
 );
 app.use(express.json({ limit: '50mb' }));
@@ -53,7 +51,6 @@ app.get("/media/*", async (req, res) => {
           res.setHeader('Content-Disposition', `attachment; filename="${mediaDoc._id}_${basename}"`);
         }
       } catch (e) {
-        console.error('[PROXY] Error setting download filename header:', e.message);
       }
     }
     const response = await axios.get(microserviceUrl, {
@@ -70,7 +67,6 @@ app.get("/media/*", async (req, res) => {
 
     response.data.pipe(res);
   } catch (error) {
-    console.error("[PROXY] Error fetching media:", error.message);
     res
       .status(error.response?.status || 500)
       .json({ error: "Failed to fetch media" });
@@ -134,7 +130,6 @@ app.get("/api/messages/:otherUserId", authenticateToken, asyncHandler(async (req
     ],
   }).sort({ createdAt: 1 });
 
-  console.log(`[API] Fetched ${messages.length} messages between ${userId} and ${otherUserId}`);
   sendSuccess(res, messages);
 }));
 
@@ -143,7 +138,6 @@ app.delete("/api/messages/clear", authenticateToken, asyncHandler(async (req, re
   const result = await Message.deleteMany({
     $or: [{ senderId: userId }, { receiverId: userId }],
   });
-  console.log(`[API] Deleted ${result.deletedCount} messages for user ${userId}`);
   sendSuccess(res, {
     message: `Deleted ${result.deletedCount} messages`,
     count: result.deletedCount,
@@ -159,7 +153,6 @@ app.delete("/api/messages/:otherUserId", authenticateToken, asyncHandler(async (
       { senderId: otherUserId, receiverId: userId }
     ]
   });
-  console.log(`[API] Deleted ${result.deletedCount} messages between ${userId} and ${otherUserId}`);
   sendSuccess(res, {
     message: `Deleted ${result.deletedCount} messages`,
     count: result.deletedCount,
@@ -181,61 +174,42 @@ io.use((socket, next) => {
   const remote = (socket.handshake && (socket.handshake.address || socket.handshake.headers && socket.handshake.headers['x-forwarded-for'])) || socket.conn && socket.conn.remoteAddress || 'unknown';
   console.log(`[SOCKET AUTH] Connection attempt from ${remote} - token present: ${!!token}`);
   if (!token) {
-    console.warn(`[SOCKET AUTH] Missing token from ${remote}`);
     return next(new Error('Authentication error: missing token'));
   }
 
   const jwtSecret = process.env.JWT_SECRET || 'secretKey';
   jwt.verify(token, jwtSecret, (err, user) => {
     if (err) {
-      console.warn(`[SOCKET AUTH] Token verification failed for ${remote}: ${err.message}`);
       return next(new Error('Authentication error: invalid token'));
     }
     socket.userId = user.userId;
-    console.log(`[SOCKET AUTH] Authenticated socket for user ${socket.userId} from ${remote}`);
     next();
   });
 });
 
 io.on("connection", (socket) => {
-  console.log(
-    `[SOCKET] User connected: ${socket.userId} (Socket ID: ${socket.id})`
-  );
   socket.join(socket.userId);
-  console.log(`[SOCKET] User ${socket.userId} joined room: ${socket.userId}`);
 
   socket.on("registerPublicKey", (data) => {
-    console.log(`[SOCKET] Registering public key for user: ${socket.userId}`);
     userPublicKeys.set(socket.userId, data.publicKey);
     socket.publicKey = data.publicKey;
     socket.broadcast.emit("peerPublicKey", {
       peerId: socket.userId,
       publicKey: data.publicKey,
     });
-    console.log(
-      `[SOCKET] Broadcasted public key of ${socket.userId} to all users`
-    );
   });
 
   socket.on("requestPeerPublicKey", (data) => {
     const { peerId } = data;
-    console.log(
-      `[SOCKET] User ${socket.userId} requesting public key of ${peerId}`
-    );
 
     const peerPublicKey = userPublicKeys.get(peerId);
     if (peerPublicKey) {
       socket.emit("peerPublicKey", { peerId, publicKey: peerPublicKey });
-      console.log(`[SOCKET] Sent public key of ${peerId} to ${socket.userId}`);
     } else {
-      console.error(`[SOCKET] Public key not found for peer: ${peerId}`);
     }
   });
 
   socket.on("sendMessage", async (data) => {
-    console.log(
-      `[SOCKET] sendMessage from ${socket.userId} to ${data.receiverId}`
-    );
     const { ciphertext, receiverId } = data;
 
     try {
@@ -246,11 +220,7 @@ io.on("connection", (socket) => {
         timestamp: new Date(),
       });
       await message.save();
-      console.log(`[SOCKET] Message saved to DB: ${message._id}`);
       const receiverSockets = await io.in(receiverId).fetchSockets();
-      console.log(
-        `[SOCKET] Receiver room "${receiverId}" has ${receiverSockets.length} socket(s)`
-      );
 
       io.to(receiverId).emit("receiveMessage", {
         messageId: message._id.toString(),
@@ -259,28 +229,22 @@ io.on("connection", (socket) => {
         receiverId,
         timestamp: message.timestamp,
       });
-      console.log(`[SOCKET] Message emitted to receiver room: ${receiverId}`);
       socket.emit("messageSent", {
         messageId: message._id,
         receiverId,
         timestamp: message.timestamp,
       });
     } catch (error) {
-      console.error(`[SOCKET] Error sending message:`, error);
       socket.emit("messageError", { error: error.message });
     }
   });
 
   socket.on("shareMedia", async (data) => {
-    console.log(
-      `[SOCKET] shareMedia from ${socket.userId} to ${data.receiverId}, mediaId: ${data.mediaId}`
-    );
     const { mediaId, receiverId } = data;
 
     try {
       const media = await Media.findById(mediaId);
       if (!media) {
-        console.error(`[SOCKET] Media not found: ${mediaId}`);
         socket.emit("messageError", { error: "Media not found" });
         return;
       }
@@ -291,7 +255,6 @@ io.on("connection", (socket) => {
         sharedAt: new Date(),
       });
       await media.save();
-      console.log(`[SOCKET] Recipient added to distribution path: ${receiverId}`);
 
       let mediaUrl = `/media/master/${path.basename(media.filePath)}`;
 
@@ -303,7 +266,6 @@ io.on("connection", (socket) => {
         mediaId: media._id,
       });
       await message.save();
-      console.log(`[SOCKET] Media message saved to DB: ${message._id}`);
 
       io.to(receiverId).emit("receiveMedia", {
         url: mediaUrl,
@@ -313,7 +275,6 @@ io.on("connection", (socket) => {
         messageId: message._id,
         mediaId: media._id.toString(),
       });
-      console.log(`[SOCKET] Media shared with receiver: ${receiverId}`);
 
       socket.emit("mediaSent", {
         messageId: message._id,
@@ -322,15 +283,11 @@ io.on("connection", (socket) => {
         masterUrl: mediaUrl,
       });
     } catch (error) {
-      console.error(`[SOCKET] Error sharing media:`, error);
       socket.emit("messageError", { error: error.message });
     }
   });
 
   socket.on("disconnect", () => {
-    console.log(
-      `[SOCKET] User disconnected: ${socket.userId} (Socket ID: ${socket.id})`
-    );
   });
 });
 
@@ -349,5 +306,4 @@ server.headersTimeout = 310000;
 server.requestTimeout = 300000;
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });

@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Shield, X, Forward } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Download } from 'lucide-react';
 
 export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenance, loadingProvenance, onFetchProvenance, onRequestForward }) {
   useEffect(() => {
@@ -62,42 +60,6 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                   </Button>
                 </motion.div>
               )}
-              {selectedMedia?.url && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-2"
-                >
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(selectedMedia.url);
-                        const blob = await res.blob();
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        const urlPath = (selectedMedia.url || '').split('?')[0];
-                        const parts = urlPath.split('/');
-                        const origName = parts.pop() || 'media.bin';
-                        const name = `${selectedMedia.mediaId || 'media'}_${origName}`;
-                        a.href = url;
-                        a.download = name;
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        URL.revokeObjectURL(url);
-                      } catch (e) {
-                        console.error('Download failed', e);
-                      }
-                    }}
-                    size="sm"
-                    variant="ghost"
-                    className="bg-white/5 text-white border border-white/10 backdrop-blur-md transition-all"
-                    title="Download media"
-                  >
-                    <Download className="h-4 w-4 mr-2" />Download
-                  </Button>
-                </motion.div>
-              )}
               {selectedMedia && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
@@ -109,7 +71,6 @@ export function MediaViewerDialog({ open, onOpenChange, selectedMedia, provenanc
                       try {
                         onRequestForward?.(selectedMedia);
                       } catch (e) {
-                        console.error('Forward request failed', e);
                       }
                     }}
                     size="sm"

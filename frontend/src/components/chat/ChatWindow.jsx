@@ -131,15 +131,10 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
               return (
                 <motion.div
                   key={`${msg._id || index}`}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 30,
-                    delay: index * 0.02
-                  }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12, delay: index * 0.02 }}
                   layout
                 >
                   {showDateSeparator && (
@@ -195,20 +190,22 @@ export function ChatWindow({ messages, onSendMessage, userId, userMap, onUploadM
                             <motion.button
                               initial={{ opacity: 0 }}
                               whileHover={{ opacity: 1 }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-white/5 inline-flex items-center justify-center"
                               onClick={() => handleForwardClick(msg)}
+                              aria-label="Forward message"
                             >
-                              <Forward className="h-3 w-3" />
+                              <Forward className="h-4 w-4" />
                             </motion.button>
                           )}
                           {!isOwn && (
                             <motion.button
                               initial={{ opacity: 0 }}
                               whileHover={{ opacity: 1 }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-white/5 inline-flex items-center justify-center"
                               onClick={() => handleForwardClick(msg)}
+                              aria-label="Forward message"
                             >
-                              <Forward className="h-3 w-3" />
+                              <Forward className="h-4 w-4" />
                             </motion.button>
                           )}
                         </div>
